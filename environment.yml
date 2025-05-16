@@ -1,0 +1,8 @@
+name: my-pyjs-env 
+channels:
+  - https://repo.prefix.dev/emscripten-forge-dev
+  - https://repo.prefix.dev/conda-forge
+dependencies:
+  - pyjs
+  - fastapi
+  - httpx

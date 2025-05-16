@@ -1,0 +1,55 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>JupyterLab</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script id="jupyter-config-data" type="application/json">PAGE_CONFIG</script>
+VENDORS_NODE_MODULES
+<script defer="defer" src="FULL_STATIC_URL/main.MAIN_ID.js?v=MAIN_ID"></script>
+<script src="pyjs_runtime_browser.js"></script>
+</head><body><script>
+    async function main() {
+      const resolve = [];
+      const initialized = [false];
+      const promise = new Promise((_resolve) => {resolve.push(_resolve);});
+
+      var pyjs = null;
+      var fetchOrig = window.fetch;
+      window.fetch = async (args) => {
+        console.log('fetch', args);
+        if (!(typeof args === 'string' && args.startsWith('./'))) {
+          await promise;
+          if (!initialized[0]) {
+            initialized[0] = true;
+          }
+          const receiveFromPy = pyjs.exec_eval('task = create_task(receive_from_py()); task');
+          pyjs.exec(`send_to_py({'method': '${args.method}', 'url': '${args.url}'})`);
+          const response = new Response(body=await receiveFromPy);
+          console.log('response', response);
+          return response;
+        }
+        else {
+          const response = await fetchOrig(args);
+          console.log('response', response);
+          return response;
+        }
+      };
+
+      let locateFile = function(filename){
+          if(filename.endsWith('pyjs_runtime_browser.wasm')){
+              return './pyjs_runtime_browser.wasm'; // location of the wasm 
+                                                  // file on the server relative 
+                                                  // to the pyjs_runtime_browser.js file
+          }
+      };
+      pyjs = await createModule({locateFile});
+      await pyjs.bootstrap_from_empack_packed_environment(
+          './empack_env_meta.json', // location of the environment 
+                                    // meta file on the server
+          '.'                       // location of the packed 
+                                    // environment on the server
+      );
+      pyjs.exec(`MAIN`);
+      resolve[0]();
+    }
+    main();
+  </script></body>
+  <script src="FULL_STATIC_URL/main.MAIN_ID.js?v=MAIN_ID"></script>
+  </html>

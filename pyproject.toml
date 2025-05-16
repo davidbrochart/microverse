@@ -30,6 +30,9 @@ dependencies = [
     "jupyterlab",
 ]
 
+[project.scripts]
+jupyverse = "jupyverse_lite:main"
+
 [project.urls]
 Source = "https://github.com/davidbrochart/jupyverse-lite"
 
