@@ -11,6 +11,8 @@ import jupyterlab
 def main():
     here = Path(__file__).parent
     asynctestclient = (here / "asynctestclient.py").read_text()
+    to_thread = (here / "to_thread.py").read_text()
+    contents = (here / "contents.py").read_text()
     main = (here / "main.py").read_text()
 
     prefix_dir = Path(sys.prefix)
@@ -22,7 +24,7 @@ def main():
     shutil.copytree(static_lab_dir, build_dir)
 
     def call(command: str):
-        subprocess.run(command, shell=True)
+        subprocess.run(command, check=True, shell=True)
 
 
     call(f'micromamba create -f environment.yml --platform emscripten-wasm32 --prefix {env_dir} --relocate-prefix "/" --yes')
@@ -101,6 +103,7 @@ def main():
             }
 
     index_html = (here / "index.html").read_text()
+    service_worker_js = (here / "service-worker.js").read_text()
 
     vendors_node_modules = f'<script defer src="/static/lab/vendors-node_modules_whatwg-fetch_fetch_js.{vendor_id}.js"></script>' if vendor_id else ""
     index = (
@@ -108,11 +111,18 @@ def main():
         .replace("MAIN_ID", main_id)
         .replace("VENDORS_NODE_MODULES", vendors_node_modules)
         .replace("FULL_STATIC_URL", full_static_url)
-        .replace("MAIN", main)
-        .replace("ASYNCTESTCLIENT", asynctestclient)
+        .replace("TO_THREAD", to_thread)
+        .replace("CONTENTS", contents)
     )
-
     (build_dir / "index.html").write_text(index)
+
+    service_worker = (
+        service_worker_js.replace("MAIN", main)
+        .replace("ASYNCTESTCLIENT", asynctestclient)
+        .replace("TO_THREAD", to_thread)
+        .replace("CONTENTS", contents)
+    )
+    (build_dir / "service-worker.js").write_text(service_worker)
 
 
     class StaticHandler(SimpleHTTPRequestHandler):

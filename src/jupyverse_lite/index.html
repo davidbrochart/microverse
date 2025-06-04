@@ -3,53 +3,35 @@
 <script id="jupyter-config-data" type="application/json">PAGE_CONFIG</script>
 VENDORS_NODE_MODULES
 <script defer="defer" src="FULL_STATIC_URL/main.MAIN_ID.js?v=MAIN_ID"></script>
-<script src="pyjs_runtime_browser.js"></script>
-</head><body><script>
-    async function main() {
-      const resolve = [];
-      const initialized = [false];
-      const promise = new Promise((_resolve) => {resolve.push(_resolve);});
-
-      var pyjs = null;
-      var fetchOrig = window.fetch;
-      window.fetch = async (args) => {
-        console.log('fetch', args);
-        if (!(typeof args === 'string' && args.startsWith('./'))) {
-          await promise;
-          if (!initialized[0]) {
-            initialized[0] = true;
+</head><body><script type="module">
+    const pyjs = [null];
+    const idx = [0];
+    const registerServiceWorker = async () => {
+      if ("serviceWorker" in navigator) {
+        var reload = false;
+        try {
+          const registration = await navigator.serviceWorker.register("/service-worker.js", {
+            scope: "/",
+          });
+          if (registration.installing) {
+            reload = true;
+            console.log("Service worker installing");
+          } else if (registration.waiting) {
+            console.log("Service worker installed");
+          } else if (registration.active) {
+            console.log("Service worker active");
           }
-          const receiveFromPy = pyjs.exec_eval('task = create_task(receive_from_py()); task');
-          pyjs.exec(`send_to_py({'method': '${args.method}', 'url': '${args.url}'})`);
-          const response = new Response(body=await receiveFromPy);
-          console.log('response', response);
-          return response;
+        } catch (error) {
+          console.error(`Registration failed with ${error}`);
         }
-        else {
-          const response = await fetchOrig(args);
-          console.log('response', response);
-          return response;
-        }
-      };
-
-      let locateFile = function(filename){
-          if(filename.endsWith('pyjs_runtime_browser.wasm')){
-              return './pyjs_runtime_browser.wasm'; // location of the wasm 
-                                                  // file on the server relative 
-                                                  // to the pyjs_runtime_browser.js file
+        navigator.serviceWorker.ready.then((registration) => {
+          console.log(`A service worker is active: ${registration.active}`);
+          if (reload) {
+            window.location.reload();
           }
-      };
-      pyjs = await createModule({locateFile});
-      await pyjs.bootstrap_from_empack_packed_environment(
-          './empack_env_meta.json', // location of the environment 
-                                    // meta file on the server
-          '.'                       // location of the packed 
-                                    // environment on the server
-      );
-      pyjs.exec(`MAIN`);
-      resolve[0]();
-    }
-    main();
+        });
+      }
+    };
+    registerServiceWorker();
   </script></body>
-  <script src="FULL_STATIC_URL/main.MAIN_ID.js?v=MAIN_ID"></script>
   </html>
