@@ -1,8 +1,5 @@
 importScripts("pyjs_runtime_browser.js");
 
-const resolve = [];
-const jupyverseReady = new Promise((_resolve) => {resolve.push(_resolve);});
-
 const startServer = async (self, event) => {
   let locateFile = function(filename){
       if(filename.endsWith('pyjs_runtime_browser.wasm')){
@@ -19,7 +16,6 @@ const startServer = async (self, event) => {
                                 // environment on the server
   );
   pyjs.exec(`MAIN`);
-  resolve[0]();
 };
 
 self.addEventListener("install", (event) => {
@@ -28,23 +24,9 @@ self.addEventListener("install", (event) => {
   );
 });
 
-const enableNavigationPreload = async () => {
-  if (self.registration.navigationPreload) {
-    // Enable navigation preloads!
-    await self.registration.navigationPreload.enable();
-  }
-};
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(enableNavigationPreload());
-});
-
 const responseFromServer = async (request) => {
-  await jupyverseReady;
-  const client = pyjs.exec_eval(`client`);
-  if (!client) {
-    return fetch(request);
-  }
+  const serverReady = pyjs.exec_eval(`task = create_task(wait_server_ready()); task`);
+  await serverReady;
   const headers = {};
   for (const pair of request.headers.entries()) {
     if (!pair[0].startsWith("sec-ch-ua")) {
@@ -81,10 +63,5 @@ const responseFromServer = async (request) => {
 };
 
 self.addEventListener("fetch", (event) => {
-  const url = event.request.url;
-  if (url.startsWith("http://127.0.0.1:8000/api") || url.startsWith("http://127.0.0.1:8000/lab/api")) {
-    event.respondWith(responseFromServer(event.request));
-  } else {
-    event.respondWith(fetch(url));
-  }
+  event.respondWith(responseFromServer(event.request));
 });

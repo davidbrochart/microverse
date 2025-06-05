@@ -15,6 +15,10 @@ import anyio.to_thread
 anyio.to_thread.run_sync = run_sync
 
 client = None
+server_ready = Event()
+
+async def wait_server_ready():
+    await server_ready.wait()
 
 class Client:
     def __init__(self, app):
@@ -79,6 +83,7 @@ async def main():
         initialize(root_module)
         async with root_module:
             client = Client(root_module.app)
+            server_ready.set()
             await Event().wait()
     except BaseException as exception:
         print(f"{exception=}")

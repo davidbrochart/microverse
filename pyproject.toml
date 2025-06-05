@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jupyverse-lite"
+name = "microverse"
 version = "0.1.0"
 description = "In-browser JupyterLab"
 readme = "README.md"
@@ -26,16 +26,13 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">= 3.9"
-dependencies = [
-    "jupyterlab",
-]
 
 [project.scripts]
-jupyverse = "jupyverse_lite:main"
+microverse = "microverse:main"
 
 [project.urls]
-Source = "https://github.com/davidbrochart/jupyverse-lite"
+Source = "https://github.com/davidbrochart/microverse"
 
 [tool.hatch.build.targets.wheel]
 ignore-vcs = true
-packages = ["src/jupyverse_lite"]
+packages = ["src/microverse"]
