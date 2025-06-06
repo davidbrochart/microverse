@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "microverse"
 version = "0.1.0"
-description = "In-browser JupyterLab"
+description = "In-browser JupyterLab powered by Jupyverse"
 readme = "README.md"
 authors = [
     {name = "David Brochart", email = "david.brochart@gmail.com"},

@@ -5,10 +5,9 @@ from pathlib import Path
 
 
 def main():
-    here = Path(__file__).parent
+    here = Path(__file__).absolute().parent
     asynctestclient = (here / "asynctestclient.py").read_text()
     to_thread = (here / "to_thread.py").read_text()
-    contents = (here / "contents.py").read_text()
     main = (here / "main.py").read_text()
 
     build_dir = Path("build").absolute()
@@ -20,7 +19,7 @@ def main():
     def call(command: str):
         subprocess.run(command, check=True, shell=True)
 
-    call(f'micromamba create -f environment.yml --platform emscripten-wasm32 --prefix {env_dir} --relocate-prefix "/" --yes')
+    call(f'micromamba create -f {here / "environment.yml"} --platform emscripten-wasm32 --prefix {env_dir} --relocate-prefix "/" --yes')
     for filename in (env_dir / "lib_js" / "pyjs").glob("*"):
         shutil.copy(filename, build_dir)
     call(f"empack pack env --env-prefix {env_dir} --outdir {build_dir} --no-use-cache")
@@ -32,7 +31,6 @@ def main():
         service_worker_js.replace("MAIN", main)
         .replace("ASYNCTESTCLIENT", asynctestclient)
         .replace("TO_THREAD", to_thread)
-        .replace("CONTENTS", contents)
     )
     (build_dir / "service-worker.js").write_text(service_worker)
 

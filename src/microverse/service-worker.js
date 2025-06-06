@@ -1,6 +1,6 @@
 importScripts("pyjs_runtime_browser.js");
 
-const startServer = async (self, event) => {
+const startServer = async () => {
   let locateFile = function(filename){
       if(filename.endsWith('pyjs_runtime_browser.wasm')){
           return './pyjs_runtime_browser.wasm'; // location of the wasm 
@@ -16,17 +16,17 @@ const startServer = async (self, event) => {
                                 // environment on the server
   );
   pyjs.exec(`MAIN`);
+  const serverReady = pyjs.exec_eval(`task = create_task(wait_server_ready()); task`);
+  await serverReady;
 };
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    startServer(self, event),
+    startServer(),
   );
 });
 
 const responseFromServer = async (request) => {
-  const serverReady = pyjs.exec_eval(`task = create_task(wait_server_ready()); task`);
-  await serverReady;
   const headers = {};
   for (const pair of request.headers.entries()) {
     if (!pair[0].startsWith("sec-ch-ua")) {
