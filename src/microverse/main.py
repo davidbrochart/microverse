@@ -9,12 +9,9 @@ ASYNCTESTCLIENT
 
 TO_THREAD
 
-CONTENTS
-
 import anyio.to_thread
 anyio.to_thread.run_sync = run_sync
 
-client = None
 server_ready = Event()
 
 async def wait_server_ready():
@@ -65,7 +62,7 @@ async def main():
                         "type": "auth",
                     },
                     "contents": {
-                        "type": ContentsModule,
+                        "type": "contents",
                     },
                     "frontend": {
                         "type": "frontend",
