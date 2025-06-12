@@ -5,6 +5,8 @@ from pathlib import Path
 
 
 def main():
+    version = "0.1.0"
+
     here = Path(__file__).absolute().parent
     asynctestclient = (here / "asynctestclient.py").read_text()
     to_thread = (here / "to_thread.py").read_text()
@@ -24,13 +26,18 @@ def main():
         shutil.copy(filename, build_dir)
     call(f"empack pack env --env-prefix {env_dir} --outdir {build_dir} --no-use-cache")
 
-    shutil.copyfile(here / "index.html", build_dir / "index.html")
+    index_html = (here / "index.html").read_text()
+    index = (
+        index_html.replace("VERSION", version)
+    )
+    (build_dir / "index.html").write_text(index)
 
     service_worker_js = (here / "service-worker.js").read_text()
     service_worker = (
         service_worker_js.replace("MAIN", main)
         .replace("ASYNCTESTCLIENT", asynctestclient)
         .replace("TO_THREAD", to_thread)
+        .replace("VERSION", version)
     )
     (build_dir / "service-worker.js").write_text(service_worker)
 

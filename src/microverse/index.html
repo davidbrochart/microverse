@@ -2,18 +2,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 </head><body><script type="module">
     if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data.version === "VERSION") {
+          window.location.assign("microverse/");
+        } else {
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (const registration of registrations) {
+              registration.unregister();
+            }
+            window.location.reload();
+          });
+        }
+      });
       try {
-        const registration = await navigator.serviceWorker.register("/service-worker.js", {
-          scope: "/",
+        const registration = await navigator.serviceWorker.register("service-worker.js", {
+          scope: "/microverse/",
         });
         if (registration.installing) {
           console.log("Service worker installing");
-          await navigator.serviceWorker.ready;
-          window.location.reload();
+          registration.installing.addEventListener('statechange', () => {
+            window.location.assign("microverse/");
+          });
         } else if (registration.waiting) {
           console.log("Service worker installed");
         } else if (registration.active) {
           console.log("Service worker active");
+          registration.active.postMessage(
+            "version",
+          );
         }
       } catch (error) {
         console.error(`Registration failed with ${error}`);

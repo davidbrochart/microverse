@@ -65,3 +65,14 @@ const responseFromServer = async (request) => {
 self.addEventListener("fetch", (event) => {
   event.respondWith(responseFromServer(event.request));
 });
+
+addEventListener("message", (event) => {
+  event.waitUntil(
+    (async () => {
+      const client = event.source;
+      client.postMessage({
+        version: "VERSION",
+      });
+    })(),
+  );
+});

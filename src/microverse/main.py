@@ -57,6 +57,9 @@ async def main():
                 "modules": {
                     "app": {
                         "type": "app",
+                        "config": {
+                            "mount_path": "/microverse",
+                        }
                     },
                     "auth": {
                         "type": "auth",
@@ -66,6 +69,9 @@ async def main():
                     },
                     "frontend": {
                         "type": "frontend",
+                        "config": {
+                            "base_url": "/microverse/",
+                        }
                     },
                     "lab": {
                         "type": "lab",
