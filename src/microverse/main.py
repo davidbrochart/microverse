@@ -1,13 +1,13 @@
 import json
 
-import pyjs
 from asyncio import Event, Queue, create_task, sleep
+
+import httpx
+import pyjs
 from fps import get_root_module, initialize
-from httpx import Request
 
-ASYNCTESTCLIENT
-
-TO_THREAD
+async def run_sync(callable, *args):
+    return callable(*args)
 
 import anyio.to_thread
 anyio.to_thread.run_sync = run_sync
@@ -19,7 +19,8 @@ async def wait_server_ready():
 
 class Client:
     def __init__(self, app):
-        self._client = AsyncTestClient(app)
+        transport = httpx.ASGITransport(app=app)
+        self._client = httpx.AsyncClient(transport=transport, base_url="http://testserver")
 
     async def send_request(self, request):
         request_body = request["body"]

@@ -8,8 +8,6 @@ def main():
     version = "0.1.0"
 
     here = Path(__file__).absolute().parent
-    asynctestclient = (here / "asynctestclient.py").read_text()
-    to_thread = (here / "to_thread.py").read_text()
     main = (here / "main.py").read_text()
 
     build_dir = Path("build").absolute()
@@ -35,8 +33,6 @@ def main():
     service_worker_js = (here / "service-worker.js").read_text()
     service_worker = (
         service_worker_js.replace("MAIN", main)
-        .replace("ASYNCTESTCLIENT", asynctestclient)
-        .replace("TO_THREAD", to_thread)
         .replace("VERSION", version)
     )
     (build_dir / "service-worker.js").write_text(service_worker)

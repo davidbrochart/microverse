@@ -14,6 +14,10 @@ micromamba activate microverse
 ```bash
 micromamba install pip empack
 ```
+- Install `microverse`:
+```bash
+pip install -e .
+```
 - Run `microverse`:
 ```bash
 microverse
