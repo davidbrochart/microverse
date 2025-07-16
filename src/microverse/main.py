@@ -1,10 +1,17 @@
 import json
 
-from asyncio import Event, Queue, create_task, sleep
+from asyncio import Event, Queue, create_task
+from contextlib import AsyncExitStack
+from uuid import uuid4
 
 import httpx
-import pyjs
-from fps import get_root_module, initialize
+from anyio import create_task_group
+from fps import Module, get_root_module, initialize
+from httpx_ws import aconnect_ws
+
+ASGIWEBSOCKETTRANSPORT
+
+FAKE_KERNEL
 
 async def run_sync(callable, *args):
     return callable(*args)
@@ -19,8 +26,57 @@ async def wait_server_ready():
 
 class Client:
     def __init__(self, app):
-        transport = httpx.ASGITransport(app=app)
-        self._client = httpx.AsyncClient(transport=transport, base_url="http://testserver")
+        self._app = app
+        self._websockets = {}
+
+    async def __aenter__(self):
+        transport = ASGIWebSocketTransport(app=self._app)
+        async with AsyncExitStack() as stack:
+            self._client = await stack.enter_async_context(httpx.AsyncClient(transport=transport, base_url="http://testserver"))
+            self._exit_stack = stack.pop_all()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        return await self._exit_stack(exc_type, exc_val, exc_tb)
+
+    async def create_websocket(self, url):
+        idx = uuid4().hex
+        status = Queue()
+        self._websockets[idx] = {
+            "task": create_task(self._create_websocket(url, idx)),
+            "status": status,
+        };
+        val = await status.get()
+        if val == "error":
+            print(f"websocket failed {url=}")
+            return "error"
+        return idx
+
+    async def _create_websocket(self, url, idx):
+        try:
+            async with aconnect_ws(url, self._client, keepalive_ping_interval_seconds=None) as ws:
+                self._websockets[idx]["ws"] = ws
+                self._websockets[idx]["status"].put_nowait("ok")
+                await Event().wait()
+        except BaseException as e:
+            self._websockets[idx]["status"].put_nowait("error")
+            print(f"{e=} {parsed_url.path=}")
+            import traceback
+            print(traceback.format_exc())
+
+    async def send_websocket(self, idx, data):
+        try:
+            data = bytes([int(bstring) for bstring in data.split(",")])
+            await self._websockets[idx]["ws"].send_json(json.loads(data))
+        except BaseException as e:
+            print(f"send_websocket {e=}")
+
+    async def receive_websocket(self, idx):
+        try:
+            msg = await self._websockets[idx]["ws"].receive_json()
+            return json.dumps(msg)
+        except BaseException as e:
+            print(f"receive_websocket {e=}")
 
     async def send_request(self, request):
         request_body = request["body"]
@@ -35,6 +91,8 @@ class Client:
             response = await self._client.post(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers, data=request_body)
         elif request["method"] == "PUT":
             response = await self._client.put(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers, data=request_body)
+        elif request["method"] == "PATCH":
+            response = await self._client.patch(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers, data=request_body)
         body = None
         try:
             body = response.json()
@@ -44,6 +102,7 @@ class Client:
             except Exception as exception:
                 print(f"{exception=}")
         return json.dumps({"status": response.status_code, "body": body, "headers": dict(response.headers)})
+
 
 async def main():
     global client
@@ -74,6 +133,16 @@ async def main():
                             "base_url": "/microverse/",
                         }
                     },
+                    "fake_kernel": {
+                        "type": FakeKernelModule,
+                    },
+                    "akernel_task": {
+                        "type": "akernel_task",
+                    },
+                    "kernels": {
+                        #"type": KernelsModule,
+                        "type": "kernels",
+                    },
                     "lab": {
                         "type": "lab",
                     },
@@ -85,8 +154,10 @@ async def main():
         }
         root_module = get_root_module(config)
         initialize(root_module)
-        async with root_module:
-            client = Client(root_module.app)
+        async with (
+            root_module,
+            Client(root_module.app) as client,
+        ):
             server_ready.set()
             await Event().wait()
     except BaseException as exception:

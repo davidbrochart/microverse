@@ -3,15 +3,17 @@
 </head><body><script type="module">
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data.version === "VERSION") {
-          window.location.assign("microverse/");
-        } else {
-          navigator.serviceWorker.getRegistrations().then(registrations => {
-            for (const registration of registrations) {
-              registration.unregister();
-            }
-            window.location.reload();
-          });
+        if (event.data.type === "version") {
+          if (event.data.version === "VERSION") {
+            window.location.assign("microverse/");
+          } else {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (const registration of registrations) {
+                registration.unregister();
+              }
+              window.location.reload();
+            });
+          }
         }
       });
       try {
@@ -28,7 +30,7 @@
         } else if (registration.active) {
           console.log("Service worker active");
           registration.active.postMessage(
-            "version",
+            "get version",
           );
         }
       } catch (error) {

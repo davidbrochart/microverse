@@ -4,10 +4,14 @@ channels:
   - https://repo.prefix.dev/conda-forge
 dependencies:
   - pyjs
-  - httpx
-  - jupyverse-api >=0.9.0
-  - fps-frontend
-  - fps-lab
-  - fps-jupyterlab
-  - fps-noauth
-  - fps-contents
+  - httpx >=0.28.1
+  - httpx-ws >=0.7.2
+  - jupyverse-api >=0.10.0
+  - fps-frontend >=0.9.0
+  - fps-lab >=0.9.0
+  - fps-jupyterlab >=0.9.0
+  - fps-noauth >=0.9.0
+  - fps-contents >=0.10.0
+  - fps-kernels >=0.9.1
+  - fps-akernel-task >=0.1.2
+  - akernel >=0.3.3

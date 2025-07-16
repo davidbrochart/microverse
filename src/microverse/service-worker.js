@@ -51,12 +51,46 @@ const responseFromServer = async (request) => {
     });
     request_body = mergedArray;
   }
+
+  if (request.url.includes("api/kernels") && request.url.includes("channels")) {
+    const task = pyjs.exec_eval(`task = create_task(client.create_websocket('${request.url}')); task`);
+    const ws_id = await task
+    if (ws_id === "error") {
+      const response = new Response(ws_id, {status: 404});
+      return response;
+    } else {
+      const response = new Response(ws_id, {status: 200});
+      return response;
+    }
+  }
+  if (request.url.includes("/microverse/websocket/send/")) {
+    const id = request.url.slice(-32);
+    await pyjs.exec_eval(`task = create_task(client.send_websocket('${id}', '${request_body}')); task`);
+    const response = new Response('', {status: 200});
+    return response;
+  }
+  if (request.url.includes("/microverse/websocket/receive/")) {
+    const id = request.url.slice(-32);
+    const task = pyjs.exec_eval(`task = create_task(client.receive_websocket('${id}')); task`);
+    const res = await task;
+    if (res) {
+      const response = new Response(res, {status: 200});
+      return response;
+    } else {
+      const response = new Response(res, {status: 404});
+      return response;
+    }
+  }
   const task = pyjs.exec_eval(`task = create_task(client.send_request({'method': '${request.method}', 'url': '${request.url}', 'body': '${request_body}', 'headers': '${JSON.stringify(headers)}'})); task`);
   const res = await task;
   const msg = JSON.parse(res);
   var response_body = null;
   if (msg.status !== 204) {
     response_body = (typeof msg.body === 'string') ? msg.body : JSON.stringify(msg.body);
+    const isMain = request.url.includes("/microverse/static/lab/main.");
+    if (isMain) {
+      response_body = `WEBSOCKET` + response_body;
+    }
   }
   const response = new Response(response_body, {status: msg.status, headers: msg.headers});
   return response;
@@ -67,12 +101,15 @@ self.addEventListener("fetch", (event) => {
 });
 
 addEventListener("message", (event) => {
-  event.waitUntil(
-    (async () => {
-      const client = event.source;
-      client.postMessage({
-        version: "VERSION",
-      });
-    })(),
-  );
+  if (event.data === "get version") {
+    event.waitUntil(
+      (async () => {
+        const client = event.source;
+        client.postMessage({
+          type: "type",
+          version: "VERSION",
+        });
+      })(),
+    );
+  }
 });
