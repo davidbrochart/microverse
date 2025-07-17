@@ -1,5 +1,6 @@
 import json
 
+import pyjs
 from asyncio import Event, Queue, create_task
 from contextlib import AsyncExitStack
 from uuid import uuid4
@@ -66,7 +67,7 @@ class Client:
 
     async def send_websocket(self, idx, data):
         try:
-            data = bytes([int(bstring) for bstring in data.split(",")])
+            data = bytes(pyjs.to_py(data))
             await self._websockets[idx]["ws"].send_json(json.loads(data))
         except BaseException as e:
             print(f"send_websocket {e=}")
@@ -78,21 +79,18 @@ class Client:
         except BaseException as e:
             print(f"receive_websocket {e=}")
 
-    async def send_request(self, request):
-        request_body = request["body"]
-        if request_body in ("null", ""):
-            request_body = None
-        else:
-            request_body = bytes([int(bstring) for bstring in request_body.split(",")])
-        request_headers = json.loads(request["headers"])
-        if request["method"] == "GET":
-            response = await self._client.get(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers)
-        elif request["method"] == "POST":
-            response = await self._client.post(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers, data=request_body)
-        elif request["method"] == "PUT":
-            response = await self._client.put(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers, data=request_body)
-        elif request["method"] == "PATCH":
-            response = await self._client.patch(request["url"][len("http://127.0.0.1:8000"):], headers=request_headers, data=request_body)
+    async def send_request(self, method, url, body, headers):
+        if body is not None:
+            body = bytes(pyjs.to_py(body))
+        headers = json.loads(headers)
+        if method == "GET":
+            response = await self._client.get(url[len("http://127.0.0.1:8000"):], headers=headers)
+        elif method == "POST":
+            response = await self._client.post(url[len("http://127.0.0.1:8000"):], headers=headers, data=body)
+        elif method == "PUT":
+            response = await self._client.put(url[len("http://127.0.0.1:8000"):], headers=headers, data=body)
+        elif method == "PATCH":
+            response = await self._client.patch(url[len("http://127.0.0.1:8000"):], headers=headers, data=body)
         body = None
         try:
             body = response.json()

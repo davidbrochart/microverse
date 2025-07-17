@@ -65,8 +65,16 @@ const responseFromServer = async (request) => {
   }
   if (request.url.includes("/microverse/websocket/send/")) {
     const id = request.url.slice(-32);
-    await pyjs.exec_eval(`task = create_task(client.send_websocket('${id}', '${request_body}')); task`);
+    var f = pyjs.exec_eval(
+`
+def f(idx, data):
+    return create_task(client.send_websocket(idx, data))
+f
+`);
+    const ret = f.py_call(id, request_body);
+    await ret;
     const response = new Response('', {status: 200});
+    f.delete();
     return response;
   }
   if (request.url.includes("/microverse/websocket/receive/")) {
@@ -81,7 +89,13 @@ const responseFromServer = async (request) => {
       return response;
     }
   }
-  const task = pyjs.exec_eval(`task = create_task(client.send_request({'method': '${request.method}', 'url': '${request.url}', 'body': '${request_body}', 'headers': '${JSON.stringify(headers)}'})); task`);
+  var f = pyjs.exec_eval(
+`
+def f(method, url, body, headers):
+    return create_task(client.send_request(method, url, body, headers))
+f
+`);
+  const task = f.py_call(request.method, request.url, request_body, JSON.stringify(headers));
   const res = await task;
   const msg = JSON.parse(res);
   var response_body = null;
