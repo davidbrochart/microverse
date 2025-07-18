@@ -22,8 +22,10 @@
         });
         if (registration.installing) {
           console.log("Service worker installing");
-          registration.installing.addEventListener('statechange', () => {
-            window.location.assign("microverse/");
+          registration.installing.addEventListener('statechange', (event) => {
+            if (event.target.state === "activated") {
+              window.location.assign("microverse/");
+            }
           });
         } else if (registration.waiting) {
           console.log("Service worker installed");

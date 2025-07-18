@@ -120,7 +120,7 @@ addEventListener("message", (event) => {
       (async () => {
         const client = event.source;
         client.postMessage({
-          type: "type",
+          type: "version",
           version: "VERSION",
         });
       })(),
