@@ -22,14 +22,15 @@ const startKernel = async (kernel_id) => {
   task = pyjs.exec(`
 import pyjs
 from asyncio import Event, create_task, sleep
-from fps_akernel_task.akernel_task import AKernelTask
+from fps_akernel_task.akernel_task import AKernelTask  # FIXME: support other kernels
 
 kernel_id = "${kernel_id}"
 akernel_task = AKernelTask()
 
 async def main():
     task0 = create_task(akernel_task.start())
-    await sleep(1)  # FIXME
+    await sleep(1)  # FIXME: remove when fixed in akernel
+    # await akernel_task.started.wait()
 
     async def from_shell_receive_stream():
         async for msg in akernel_task._from_shell_receive_stream:

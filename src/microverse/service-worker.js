@@ -1,5 +1,7 @@
 importScripts("pyjs_runtime_browser.js");
 
+var pyjs;
+
 const startServer = async () => {
   let locateFile = function(filename){
       if(filename.endsWith('pyjs_runtime_browser.wasm')){
