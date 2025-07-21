@@ -8,11 +8,14 @@ from uuid import uuid4
 import httpx
 from anyio import create_task_group
 from fps import Module, get_root_module, initialize
+from jupyverse_api.app import App
 from httpx_ws import aconnect_ws
 
 ASGIWEBSOCKETTRANSPORT
 
-FAKE_KERNEL
+#FAKE_KERNEL
+
+FPS_KERNEL_WEB_WORKER
 
 async def run_sync(callable, *args):
     return callable(*args)
@@ -26,12 +29,14 @@ async def wait_server_ready():
     await server_ready.wait()
 
 class Client:
-    def __init__(self, app):
-        self._app = app
+    def __init__(self, root_module):
+        self._root_module = root_module
         self._websockets = {}
 
     async def __aenter__(self):
-        transport = ASGIWebSocketTransport(app=self._app)
+        #app = await self._root_module.get(App)
+        #print(f"{app._app=}")
+        transport = ASGIWebSocketTransport(app=self._root_module.app)
         async with AsyncExitStack() as stack:
             self._client = await stack.enter_async_context(httpx.AsyncClient(transport=transport, base_url="http://testserver"))
             self._exit_stack = stack.pop_all()
@@ -131,11 +136,17 @@ async def main():
                             "base_url": "/microverse/",
                         }
                     },
-                    "fake_kernel": {
-                        "type": FakeKernelModule,
-                    },
-                    "akernel_task": {
-                        "type": "akernel_task",
+                    #"fake_kernel": {
+                    #    "type": FakeKernelModule,
+                    #},
+                    #"akernel_task": {
+                    #    "type": "akernel_task",
+                    #},
+                    #"web_worker": {
+                    #    "type": WebWorkerModule,
+                    #},
+                    "kernel_web_worker": {
+                        "type": KernelWebWorkerModule,
                     },
                     "kernels": {
                         #"type": KernelsModule,
@@ -154,7 +165,7 @@ async def main():
         initialize(root_module)
         async with (
             root_module,
-            Client(root_module.app) as client,
+            Client(root_module) as client,
         ):
             server_ready.set()
             await Event().wait()

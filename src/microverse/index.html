@@ -1,19 +1,45 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>JupyterLab</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 </head><body><script type="module">
+    const kernels = {};
+    var service_worker;
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", (event) => {
-        if (event.data.type === "version") {
-          if (event.data.version === "VERSION") {
-            window.location.assign("microverse/");
-          } else {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-              for (const registration of registrations) {
-                registration.unregister();
-              }
-              window.location.reload();
-            });
-          }
+        const response = event.data;
+        switch (response.type) {
+          case "version":
+            if (response.version === "VERSION") {
+              const iframe = document.createElement("iframe");
+              iframe.setAttribute("src", "microverse/");
+              iframe.setAttribute("style", "position:fixed; top:0; left:0; bottom:0; right:0; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;");
+              document.body.appendChild(iframe);
+            } else {
+              navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (const registration of registrations) {
+                  registration.unregister();
+                }
+                window.location.reload();
+              });
+            }
+            break;
+          case "kernel-web-worker":
+            if (response.msg.action === "start") {
+              var worker = new Worker('kernel-web-worker.js');
+              kernels[response.msg.kernel_id] = worker;
+              worker.postMessage({type: "start", kernel_id: response.msg.kernel_id});
+              worker.addEventListener("message", (msg) => {
+                console.log("kernel-web-worker received message", msg);
+                service_worker.postMessage(msg.data);
+              });
+            } else {
+              kernels[response.msg.kernel_id].postMessage({type: response.msg.action, msg: response.msg.msg});
+            }
+            // wait for a kernel request again
+            service_worker.postMessage(
+              "wait kernel-web-worker",
+            );
+            break;
         }
       });
       try {
@@ -22,15 +48,26 @@
         });
         if (registration.installing) {
           console.log("Service worker installing");
-          registration.installing.addEventListener('statechange', () => {
-            window.location.assign("microverse/");
+          registration.installing.addEventListener('statechange', (e) => {
+            if (e.target.state === "activated") {
+              //var worker = new Worker('web-worker.js');
+              //const iframe = document.createElement("iframe");
+              //iframe.setAttribute("src", "microverse/");
+              //iframe.setAttribute("style", "position:fixed; top:0; left:0; bottom:0; right:0; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;");
+              //document.body.appendChild(iframe);
+              window.location.reload();
+            }
           });
         } else if (registration.waiting) {
           console.log("Service worker installed");
         } else if (registration.active) {
           console.log("Service worker active");
+          service_worker = registration.active;
           registration.active.postMessage(
             "get version",
+          );
+          registration.active.postMessage(
+            "wait kernel-web-worker",
           );
         }
       } catch (error) {
