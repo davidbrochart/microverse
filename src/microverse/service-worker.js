@@ -30,7 +30,6 @@ const kernel_web_worker_resolve = [null];
 const kernel_web_worker_promise = [new Promise((_resolve) => {kernel_web_worker_resolve[0] = _resolve;})];
 const kernel_callbacks = {};
 
-//const kernel_web_worker = (msg) => {
 const kernel_web_worker = (action, kernel_id, msg, callback) => {
   kernel_web_worker_resolve[0]({action, kernel_id, msg, callback});
 }
@@ -160,8 +159,6 @@ addEventListener("message", (event) => {
       );
       break;
     default:
-      console.log("service worker received", request);
-      console.log("kernel_callbacks", kernel_callbacks);
       kernel_callbacks[request.kernel_id](request);
   }
 });

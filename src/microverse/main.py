@@ -13,8 +13,6 @@ from httpx_ws import aconnect_ws
 
 ASGIWEBSOCKETTRANSPORT
 
-#FAKE_KERNEL
-
 FPS_KERNEL_WEB_WORKER
 
 async def run_sync(callable, *args):
@@ -34,8 +32,6 @@ class Client:
         self._websockets = {}
 
     async def __aenter__(self):
-        #app = await self._root_module.get(App)
-        #print(f"{app._app=}")
         transport = ASGIWebSocketTransport(app=self._root_module.app)
         async with AsyncExitStack() as stack:
             self._client = await stack.enter_async_context(httpx.AsyncClient(transport=transport, base_url="http://testserver"))
@@ -141,9 +137,6 @@ async def main():
                     #},
                     #"akernel_task": {
                     #    "type": "akernel_task",
-                    #},
-                    #"web_worker": {
-                    #    "type": WebWorkerModule,
                     #},
                     "kernel_web_worker": {
                         "type": KernelWebWorkerModule,

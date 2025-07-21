@@ -32,33 +32,25 @@ class KernelWebWorker(foo__Kernel):
             kernel_ready = Event()
 
             def callback(msg):
-                if "msg" in msg:
-                    print(f"callback {msg['msg']=}")
                 if msg["type"] == "started":
                     kernel_ready.set()
                 elif msg["type"] == "shell":
                     msg = [bytes(pyjs.to_py(m)) for m in msg["msg"]]
-                    print(f"kernel received shell {msg=}")
                     self.task_group.start_soon(self._from_shell_send_stream.send, msg)
                 elif msg["type"] == "control":
                     msg = [bytes(pyjs.to_py(m)) for m in msg["msg"]]
-                    print(f"kernel received control {msg=}")
                     self.task_group.start_soon(self._from_control_send_stream.send, msg)
                 elif msg["type"] == "stdin":
                     msg = [bytes(pyjs.to_py(m)) for m in msg["msg"]]
-                    print(f"kernel received stdin {msg=}")
                     self.task_group.start_soon(self._from_stdin_send_stream.send, msg)
                 elif msg["type"] == "iopub":
                     msg = [bytes(pyjs.to_py(m)) for m in msg["msg"]]
-                    print(f"kernel received iopub {msg=}")
                     self.task_group.start_soon(self._from_iopub_send_stream.send, msg)
 
             js_callable, self.js_py_object = pyjs.create_callable(callback)
             higher_order_function = pyjs.js.Function("callback", "action", "kernel_id", "kernel_web_worker(action, kernel_id, 0, callback);")
-            #higher_order_function = pyjs.js.Function("cb", "kernel_web_worker({action: 'start', kernel_id: '" + self.kernel_id + "', callback: cb});")
             higher_order_function(js_callable, "start", self.kernel_id)
             await kernel_ready.wait()
-            print("kernel ready!")
 
             self.task_group.start_soon(self.forward_messages_to_shell)
             self.task_group.start_soon(self.forward_messages_to_control)
@@ -75,29 +67,25 @@ class KernelWebWorker(foo__Kernel):
 
     async def forward_messages_to_shell(self) -> None:
         async for msg in self._to_shell_receive_stream:
-            print(f"{msg=}")
-            #msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
             try:
-                #pyjs.js.Function("kernel_web_worker({action: 'shell', kernel_id: '" + self.kernel_id + "', msg: '" + msg + "'});")()
                 msg = pyjs.to_js(msg)
                 pyjs.js.Function("action", "kernel_id", "msg", "kernel_web_worker(action, kernel_id, msg, 0);")("shell", self.kernel_id, msg)
-                #msg.delete()
             except BaseException as e:
                 print(f"{e=}")
 
     async def forward_messages_to_control(self) -> None:
         async for msg in self._to_control_receive_stream:
-            msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
             try:
-                pyjs.js.Function("kernel_web_worker({action: 'control', kernel_id: '" + self.kernel_id + "', msg: '" + msg + "'});")()
+                msg = pyjs.to_js(msg)
+                pyjs.js.Function("action", "kernel_id", "msg", "kernel_web_worker(action, kernel_id, msg, 0);")("control", self.kernel_id, msg)
             except BaseException as e:
                 print(f"{e=}")
 
     async def forward_messages_to_stdin(self) -> None:
         async for msg in self._to_stdin_receive_stream:
-            msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
             try:
-                pyjs.js.Function("kernel_web_worker({action: 'stdin', kernel_id: '" + self.kernel_id + "', msg: '" + msg + "'});")()
+                msg = pyjs.to_js(msg)
+                pyjs.js.Function("action", "kernel_id", "msg", "kernel_web_worker(action, kernel_id, msg, 0);")("stdin", self.kernel_id, msg)
             except BaseException as e:
                 print(f"{e=}")
 

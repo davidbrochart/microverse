@@ -33,14 +33,10 @@ async def main():
 
     async def from_shell_receive_stream():
         async for msg in akernel_task._from_shell_receive_stream:
-            print(f"from_shell_receive_stream {msg=}")
             try:
-                if isinstance(msg[0], str):
+                if isinstance(msg[0], str):  # FIXME: remove when fixed in akernel
                     msg[0] = msg[0].encode()
-                #msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
-                #pyjs.js.Function("self.postMessage({type: 'shell', kernel_id: '" + kernel_id + "', msg: '" + msg + "'});")()
                 msg = pyjs.to_js(msg)
-                #pyjs.js.Function("type", "kernel_id", "msg", "self.postMessage({type: type, kernel_id: kernel_id, msg: msg})")("shell", self.kernel_id, msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'shell', kernel_id: '" + kernel_id + "', msg: msg});")()
             except BaseException as e:
@@ -48,14 +44,10 @@ async def main():
 
     async def from_control_receive_stream():
         async for msg in akernel_task._from_control_receive_stream:
-            print(f"from_control_receive_stream {msg=}")
             try:
-                if isinstance(msg[0], str):
+                if isinstance(msg[0], str):  # FIXME: remove when fixed in akernel
                     msg[0] = msg[0].encode()
-                #msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
-                #pyjs.js.Function("self.postMessage({type: 'control', kernel_id: '" + kernel_id + "', msg: '" + msg + "'});")()
                 msg = pyjs.to_js(msg)
-                #pyjs.js.Function("type", "kernel_id", "msg", "self.postMessage({type: type, kernel_id: kernel_id, msg: msg})")("control", self.kernel_id, msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'control', kernel_id: '" + kernel_id + "', msg: msg});")()
             except BaseException as e:
@@ -63,14 +55,10 @@ async def main():
 
     async def from_stdin_receive_stream():
         async for msg in akernel_task._from_stdin_receive_stream:
-            print(f"from_stdin_receive_stream {msg=}")
             try:
-                if isinstance(msg[0], str):
+                if isinstance(msg[0], str):  # FIXME: remove when fixed in akernel
                     msg[0] = msg[0].encode()
-                #msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
-                #pyjs.js.Function("self.postMessage({type: 'stdin', kernel_id: '" + kernel_id + "', msg: '" + msg + "'});")()
                 msg = pyjs.to_js(msg)
-                #pyjs.js.Function("type", "kernel_id", "msg", "self.postMessage({type: type, kernel_id: kernel_id, msg: msg})")("stdin", self.kernel_id, msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'stdin', kernel_id: '" + kernel_id + "', msg: msg});")()
             except BaseException as e:
@@ -78,12 +66,8 @@ async def main():
 
     async def from_iopub_receive_stream():
         async for msg in akernel_task._from_iopub_receive_stream:
-            print(f"from_iopub_receive_stream {msg=}")
             try:
-                #msg = (b"<|>".join(msg)).decode()  # FIXME: binary buffers
-                #pyjs.js.Function("self.postMessage({type: 'iopub', kernel_id: '" + kernel_id + "', msg: '" + msg + "'});")()
                 msg = pyjs.to_js(msg)
-                #pyjs.js.Function("type", "kernel_id", "msg", "self.postMessage({type: type, kernel_id: kernel_id, msg: msg});")("iopub", self.kernel_id, msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'iopub', kernel_id: '" + kernel_id + "', msg: msg});")()
             except BaseException as e:
@@ -107,15 +91,10 @@ self.onmessage = async (msg) => {
     await startKernel(message.kernel_id);
     self.postMessage({type: "started", kernel_id: message.kernel_id});
   } else {
-    console.log("onmessage", message);
-    pyjs.exec(`print("""kernel web worker received ${message.type}: ${message.msg}""")`);
-    //pyjs.exec(`task = create_task(akernel_task._to_${message.type}_send_stream.send("""${message.msg}""".encode().split(b"<|>")))`);
     var py_send_stream = pyjs.exec_eval(`
 def send_stream(msg):
-    print(f"send_stream before {msg=}")
     try:
         msg = [bytes(pyjs.to_py(m)) for m in msg]
-        print(f"send_stream after {msg=}")
         create_task(akernel_task._to_${message.type}_send_stream.send(msg))
     except BaseException as e:
         print(f"{e=}")
