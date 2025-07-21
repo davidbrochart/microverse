@@ -48,8 +48,8 @@
         });
         if (registration.installing) {
           console.log("Service worker installing");
-          registration.installing.addEventListener('statechange', (e) => {
-            if (e.target.state === "activated") {
+          registration.installing.addEventListener('statechange', (event) => {
+            if (event.target.state === "activated") {
               //var worker = new Worker('web-worker.js');
               //const iframe = document.createElement("iframe");
               //iframe.setAttribute("src", "microverse/");
