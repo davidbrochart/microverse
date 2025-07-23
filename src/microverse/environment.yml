@@ -13,5 +13,6 @@ dependencies:
   - fps-noauth >=0.9.0
   - fps-contents >=0.10.0
   - fps-kernels >=0.9.1
-  - fps-akernel-task >=0.1.2
-  - akernel >=0.3.3
+  - fps-akernel-task >=0.1.3
+  - fps-kernel-web-worker >=0.1.2
+  - akernel >=0.3.4

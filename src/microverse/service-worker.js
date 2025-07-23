@@ -1,5 +1,7 @@
 importScripts("pyjs_runtime_browser.js");
 
+var pyjs;
+
 const startServer = async () => {
   let locateFile = function(filename){
       if(filename.endsWith('pyjs_runtime_browser.wasm')){
@@ -25,6 +27,20 @@ self.addEventListener("install", (event) => {
     startServer(),
   );
 });
+
+const kernel_web_worker_resolve = [null];
+const kernel_web_worker_promise = [new Promise((_resolve) => {kernel_web_worker_resolve[0] = _resolve;})];
+const kernel_callbacks = {};
+
+const kernel_web_worker = (action, kernel_id, msg, callback) => {
+  kernel_web_worker_resolve[0]({action, kernel_id, msg, callback});
+}
+
+const waitForKernelWebWorkerRequest = async () => {
+  const msg = await kernel_web_worker_promise[0];
+  kernel_web_worker_promise[0] = new Promise((_resolve) => {kernel_web_worker_resolve[0] = _resolve;});
+  return msg;
+}
 
 const responseFromServer = async (request) => {
   const headers = {};
@@ -115,15 +131,36 @@ self.addEventListener("fetch", (event) => {
 });
 
 addEventListener("message", (event) => {
-  if (event.data === "get version") {
-    event.waitUntil(
-      (async () => {
-        const client = event.source;
-        client.postMessage({
-          type: "version",
-          version: "VERSION",
-        });
-      })(),
-    );
+  const request = event.data;
+  switch (request) {
+    case "get version":
+      event.waitUntil(
+        (async () => {
+          const client = event.source;
+          client.postMessage({
+            type: "version",
+            version: "VERSION",
+          });
+        })(),
+      );
+      break;
+    case "wait kernel-web-worker":
+      event.waitUntil(
+        (async () => {
+          const msg = await waitForKernelWebWorkerRequest();
+          if (msg.callback !== 0) {
+            kernel_callbacks[msg.kernel_id] = msg.callback;
+            delete msg.callback;
+          }
+          const client = event.source;
+          client.postMessage({
+            type: "kernel-web-worker",
+            msg,
+          });
+        })(),
+      );
+      break;
+    default:
+      kernel_callbacks[request.kernel_id](request);
   }
 });

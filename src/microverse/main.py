@@ -8,11 +8,10 @@ from uuid import uuid4
 import httpx
 from anyio import create_task_group
 from fps import Module, get_root_module, initialize
+from jupyverse_api.app import App
 from httpx_ws import aconnect_ws
 
 ASGIWEBSOCKETTRANSPORT
-
-FAKE_KERNEL
 
 async def run_sync(callable, *args):
     return callable(*args)
@@ -26,12 +25,12 @@ async def wait_server_ready():
     await server_ready.wait()
 
 class Client:
-    def __init__(self, app):
-        self._app = app
+    def __init__(self, root_module):
+        self._root_module = root_module
         self._websockets = {}
 
     async def __aenter__(self):
-        transport = ASGIWebSocketTransport(app=self._app)
+        transport = ASGIWebSocketTransport(app=self._root_module.app)
         async with AsyncExitStack() as stack:
             self._client = await stack.enter_async_context(httpx.AsyncClient(transport=transport, base_url="http://testserver"))
             self._exit_stack = stack.pop_all()
@@ -131,14 +130,10 @@ async def main():
                             "base_url": "/microverse/",
                         }
                     },
-                    "fake_kernel": {
-                        "type": FakeKernelModule,
-                    },
-                    "akernel_task": {
-                        "type": "akernel_task",
+                    "kernel_web_worker": {
+                        "type": "kernel_web_worker",
                     },
                     "kernels": {
-                        #"type": KernelsModule,
                         "type": "kernels",
                     },
                     "lab": {
@@ -154,7 +149,7 @@ async def main():
         initialize(root_module)
         async with (
             root_module,
-            Client(root_module.app) as client,
+            Client(root_module) as client,
         ):
             server_ready.set()
             await Event().wait()
