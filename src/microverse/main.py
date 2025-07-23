@@ -13,8 +13,6 @@ from httpx_ws import aconnect_ws
 
 ASGIWEBSOCKETTRANSPORT
 
-FPS_KERNEL_WEB_WORKER
-
 async def run_sync(callable, *args):
     return callable(*args)
 
@@ -139,7 +137,7 @@ async def main():
                     #    "type": "akernel_task",
                     #},
                     "kernel_web_worker": {
-                        "type": KernelWebWorkerModule,
+                        "type": "kernel_web_worker",
                     },
                     "kernels": {
                         #"type": KernelsModule,

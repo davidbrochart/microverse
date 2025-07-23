@@ -13,7 +13,6 @@ def main():
     main = (here / "main.py").read_text()
     websocket = (here / "websocket.js").read_text()
     asgiwebsockettransport = (here / "asgi_websocket_transport.py").read_text()
-    fps_kernel_web_worker = (here / "fps_kernel_web_worker.py").read_text()
 
     build_dir = Path("build").absolute()
     env_dir = Path("env").absolute()
@@ -37,7 +36,6 @@ def main():
     main = (
         main
         .replace("ASGIWEBSOCKETTRANSPORT", asgiwebsockettransport)
-        .replace("FPS_KERNEL_WEB_WORKER", fps_kernel_web_worker)
     )
 
     service_worker = (
