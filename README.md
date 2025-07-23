@@ -20,7 +20,7 @@ pip install -e .
 ```
 - Run `microverse`:
 ```bash
-microverse
+microverse --serve
 ```
 
 A server should be running at http://127.0.0.1:8000.

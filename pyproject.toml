@@ -26,9 +26,12 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 requires-python = ">= 3.9"
+dependencies = [
+    "cyclopts",
+]
 
 [project.scripts]
-microverse = "microverse:main"
+microverse = "microverse.__main__:main"
 
 [project.urls]
 Source = "https://github.com/davidbrochart/microverse"

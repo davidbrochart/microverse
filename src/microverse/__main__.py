@@ -3,8 +3,13 @@ import subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
+from cyclopts import App
 
-def main():
+
+app = App()
+
+@app.default
+def _main(*, serve: bool = False):
     version = "0.1.2"
 
     here = Path(__file__).absolute().parent
@@ -48,10 +53,19 @@ def main():
 
     shutil.copy(here / "kernel-web-worker.js", build_dir)
 
-    class StaticHandler(SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=build_dir, **kwargs)
+    if serve:
+        class StaticHandler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=build_dir, **kwargs)
 
-    print("Running server at http://127.0.0.1:8000")
-    server = HTTPServer(("0.0.0.0", 8000), StaticHandler)
-    server.serve_forever()
+        print("Running server at http://127.0.0.1:8000")
+        server = HTTPServer(("0.0.0.0", 8000), StaticHandler)
+        server.serve_forever()
+
+
+def main():
+    app()
+
+
+if __name__ == "__main__":
+    app()
