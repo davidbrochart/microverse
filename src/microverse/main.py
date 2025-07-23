@@ -130,17 +130,10 @@ async def main():
                             "base_url": "/microverse/",
                         }
                     },
-                    #"fake_kernel": {
-                    #    "type": FakeKernelModule,
-                    #},
-                    #"akernel_task": {
-                    #    "type": "akernel_task",
-                    #},
                     "kernel_web_worker": {
                         "type": "kernel_web_worker",
                     },
                     "kernels": {
-                        #"type": KernelsModule,
                         "type": "kernels",
                     },
                     "lab": {

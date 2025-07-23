@@ -21,7 +21,7 @@ const startKernel = async (kernel_id) => {
   );
   task = pyjs.exec(`
 import pyjs
-from asyncio import Event, create_task, sleep
+from asyncio import Event, create_task
 from fps_akernel_task.akernel_task import AKernelTask  # FIXME: support other kernels
 
 kernel_id = "${kernel_id}"
@@ -29,14 +29,11 @@ akernel_task = AKernelTask()
 
 async def main():
     task0 = create_task(akernel_task.start())
-    await sleep(1)  # FIXME: remove when fixed in akernel
-    # await akernel_task.started.wait()
+    await akernel_task.started.wait()
 
     async def from_shell_receive_stream():
         async for msg in akernel_task._from_shell_receive_stream:
             try:
-                if isinstance(msg[0], str):  # FIXME: remove when fixed in akernel
-                    msg[0] = msg[0].encode()
                 msg = pyjs.to_js(msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'shell', kernel_id: '" + kernel_id + "', msg: msg});")()
@@ -46,8 +43,6 @@ async def main():
     async def from_control_receive_stream():
         async for msg in akernel_task._from_control_receive_stream:
             try:
-                if isinstance(msg[0], str):  # FIXME: remove when fixed in akernel
-                    msg[0] = msg[0].encode()
                 msg = pyjs.to_js(msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'control', kernel_id: '" + kernel_id + "', msg: msg});")()
@@ -57,8 +52,6 @@ async def main():
     async def from_stdin_receive_stream():
         async for msg in akernel_task._from_stdin_receive_stream:
             try:
-                if isinstance(msg[0], str):  # FIXME: remove when fixed in akernel
-                    msg[0] = msg[0].encode()
                 msg = pyjs.to_js(msg)
                 pyjs.js.Function("message", "msg = message;")(msg)
                 pyjs.js.Function("self.postMessage({type: 'stdin', kernel_id: '" + kernel_id + "', msg: msg});")()
