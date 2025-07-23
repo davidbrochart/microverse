@@ -1,0 +1,61 @@
+name: deploy
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup micromamba
+      uses: mamba-org/setup-micromamba@v2
+      with:
+        environment-name: microverse
+        create-args: >-
+          pip
+          empack
+        init-shell: bash
+
+    - name: Install microverse
+      run: pip install -e .
+      shell: bash -el {0}
+
+    - name: Run microverse
+      run: microverse
+      shell: bash -el {0}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: github-pages
+        path: build
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

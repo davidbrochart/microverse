@@ -48,10 +48,10 @@ def main():
 
     shutil.copy(here / "kernel-web-worker.js", build_dir)
 
-    class StaticHandler(SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=build_dir, **kwargs)
+    # class StaticHandler(SimpleHTTPRequestHandler):
+    #     def __init__(self, *args, **kwargs):
+    #         super().__init__(*args, directory=build_dir, **kwargs)
 
-    print("Running server at http://127.0.0.1:8000")
-    server = HTTPServer(("0.0.0.0", 8000), StaticHandler)
-    server.serve_forever()
+    # print("Running server at http://127.0.0.1:8000")
+    # server = HTTPServer(("0.0.0.0", 8000), StaticHandler)
+    # server.serve_forever()
