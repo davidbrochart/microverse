@@ -2,7 +2,7 @@
 
 In-browser JupyterLab powered by [Jupyverse](https://github.com/jupyter-server/jupyverse).
 
-## Usage
+## Local deployment
 
 - Install [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
 - Create an environment and activate it:
@@ -24,3 +24,7 @@ microverse --serve
 ```
 
 A server should be running at http://127.0.0.1:8000.
+
+## GitHub pages deployment
+
+The `main` branch is deployed on GitHub pages at [https://davidbrochart.github.io/microverse/](https://davidbrochart.github.io/microverse/).
