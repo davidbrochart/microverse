@@ -83,13 +83,13 @@ class Client:
             body = bytes(pyjs.to_py(body))
         headers = json.loads(headers)
         if method == "GET":
-            response = await self._client.get(url[len("http://127.0.0.1:8000"):], headers=headers)
+            response = await self._client.get(url, headers=headers)
         elif method == "POST":
-            response = await self._client.post(url[len("http://127.0.0.1:8000"):], headers=headers, data=body)
+            response = await self._client.post(url, headers=headers, data=body)
         elif method == "PUT":
-            response = await self._client.put(url[len("http://127.0.0.1:8000"):], headers=headers, data=body)
+            response = await self._client.put(url, headers=headers, data=body)
         elif method == "PATCH":
-            response = await self._client.patch(url[len("http://127.0.0.1:8000"):], headers=headers, data=body)
+            response = await self._client.patch(url, headers=headers, data=body)
         body = None
         try:
             body = response.json()
@@ -101,7 +101,7 @@ class Client:
         return json.dumps({"status": response.status_code, "body": body, "headers": dict(response.headers)})
 
 
-async def main():
+async def main(base_url):
     global client
 
     try:
@@ -127,7 +127,7 @@ async def main():
                     "frontend": {
                         "type": "frontend",
                         "config": {
-                            "base_url": "/microverse/",
+                            "base_url": f"{base_url}microverse/",
                         }
                     },
                     "kernel_web_worker": {
@@ -155,5 +155,3 @@ async def main():
             await Event().wait()
     except BaseException as exception:
         print(f"{exception=}")
-
-main_task = create_task(main())

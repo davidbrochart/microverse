@@ -1,6 +1,7 @@
 importScripts("pyjs_runtime_browser.js");
 
 var pyjs;
+var baseUrl = '';
 
 const startServer = async () => {
   let locateFile = function(filename){
@@ -18,6 +19,7 @@ const startServer = async () => {
                                 // environment on the server
   );
   pyjs.exec(`MAIN`);
+  pyjs.exec_eval(`main_task = create_task(main('${baseUrl}')); main_task`);
   const serverReady = pyjs.exec_eval(`task = create_task(wait_server_ready()); task`);
   await serverReady;
 };
@@ -43,6 +45,7 @@ const waitForKernelWebWorkerRequest = async () => {
 }
 
 const responseFromServer = async (request) => {
+  const url = request.url.slice(baseUrl.length - 1);
   const headers = {};
   for (const pair of request.headers.entries()) {
     if (!pair[0].startsWith("sec-ch-ua")) {
@@ -68,8 +71,8 @@ const responseFromServer = async (request) => {
     request_body = mergedArray;
   }
 
-  if (request.url.includes("api/kernels") && request.url.includes("channels")) {
-    const task = pyjs.exec_eval(`task = create_task(client.create_websocket('${request.url}')); task`);
+  if (url.includes("api/kernels") && url.includes("channels")) {
+    const task = pyjs.exec_eval(`task = create_task(client.create_websocket('${url}')); task`);
     const ws_id = await task
     if (ws_id === "error") {
       const response = new Response(ws_id, {status: 404});
@@ -79,8 +82,8 @@ const responseFromServer = async (request) => {
       return response;
     }
   }
-  if (request.url.includes("/microverse/websocket/send/")) {
-    const id = request.url.slice(-32);
+  if (url.includes("/microverse/websocket/send/")) {
+    const id = url.slice(-32);
     var f = pyjs.exec_eval(
 `
 def f(idx, data):
@@ -93,8 +96,8 @@ f
     f.delete();
     return response;
   }
-  if (request.url.includes("/microverse/websocket/receive/")) {
-    const id = request.url.slice(-32);
+  if (url.includes("/microverse/websocket/receive/")) {
+    const id = url.slice(-32);
     const task = pyjs.exec_eval(`task = create_task(client.receive_websocket('${id}')); task`);
     const res = await task;
     if (res) {
@@ -111,15 +114,19 @@ def f(method, url, body, headers):
     return create_task(client.send_request(method, url, body, headers))
 f
 `);
-  const task = f.py_call(request.method, request.url, request_body, JSON.stringify(headers));
+  const task = f.py_call(request.method, url, request_body, JSON.stringify(headers));
   const res = await task;
   const msg = JSON.parse(res);
   var response_body = null;
   if (msg.status !== 204) {
     response_body = (typeof msg.body === 'string') ? msg.body : JSON.stringify(msg.body);
-    const isMain = request.url.includes("/microverse/static/lab/main.");
+    const isMain = url.includes("/microverse/static/lab/main.");
     if (isMain) {
-      response_body = `WEBSOCKET` + response_body;
+      response_body = `
+var baseUrl = '${baseUrl}';
+
+WEBSOCKET
+` + response_body;
     }
   }
   const response = new Response(response_body, {status: msg.status, headers: msg.headers});
@@ -132,7 +139,10 @@ self.addEventListener("fetch", (event) => {
 
 addEventListener("message", (event) => {
   const request = event.data;
-  switch (request) {
+  switch (request.type) {
+    case "set base url":
+      baseUrl = request.baseUrl;
+      break;
     case "get version":
       event.waitUntil(
         (async () => {

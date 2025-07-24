@@ -34,10 +34,7 @@ jobs:
       shell: bash -el {0}
 
     - name: Run microverse
-      run: |
-        microverse
-        chmod -R a-x ./build/*
-        ls -lrtha ./build
+      run: microverse
       shell: bash -el {0}
 
     - name: Upload artifacts

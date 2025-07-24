@@ -1,22 +1,12 @@
-navigator.serviceWorker.addEventListener("message", (event) => {
-  if (event.data.type === "version") {
-    if (event.data.version === "VERSION") {
-      window.location.assign("microverse/");
-    } else {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-        window.location.reload();
-      });
-    }
-  }
-});
-
 class WebSocket {
   constructor(url) {
     this._closed = false;
-    const http_url = 'http' + url.slice(2);
+    var http_url;
+    if (url.startsWith('wss')) {
+      http_url = 'https' + url.slice(3);
+    } else {
+      http_url = 'http' + url.slice(2);
+    }
     fetch(http_url).then((response) => {
       if (!response.ok) {
         this._closed = true;
@@ -58,14 +48,14 @@ class WebSocket {
     return '';
   }
   send(data) {
-    fetch('http://127.0.0.1:8000/microverse/websocket/send/' + this.id, {
+    fetch(baseUrl + 'microverse/websocket/send/' + this.id, {
       method: 'POST',
       body: data
     });
   }
   async receive() {
     while (!this._closed) {
-      const response = await fetch('http://127.0.0.1:8000/microverse/websocket/receive/' + this.id);
+      const response = await fetch(baseUrl + 'microverse/websocket/receive/' + this.id);
       if (!response.ok) {
         this._closed = true;
       } else {
@@ -78,4 +68,3 @@ class WebSocket {
     this._close = true;
   }
 };
-
