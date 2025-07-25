@@ -18,6 +18,41 @@ const startServer = async () => {
       '.'                       // location of the packed 
                                 // environment on the server
   );
+  var response = await fetch("contents.json");
+  var data = await response.text();
+  var contents = JSON.parse(data);
+  pyjs.exec(`
+import base64
+import os
+from pathlib import Path
+
+p = Path()
+(p / "contents").mkdir()
+os.chdir("contents")
+`);
+  const set_dir_content = async (contents, cur_dir) => {
+    for (const k in contents) {
+      if (contents[k]) {
+        pyjs.exec(`(p / "${cur_dir}" / "${k}").mkdir()`);
+        if (cur_dir !== "") {
+          await set_dir_content(contents[k], `${cur_dir}/${k}`);
+        } else {
+          await set_dir_content(contents[k], k);
+        }
+      } else {
+        var content_path;
+        if (cur_dir !== "") {
+          content_path = `contents/${cur_dir}/${k}`;
+        } else {
+          content_path = `contents/${k}`;
+        }
+        response = await fetch(content_path);
+        data = await response.text();
+        pyjs.exec(`content_bytes = base64.b64decode("${data}"); (p / "${cur_dir}" / "${k}").write_bytes(content_bytes)`);
+      }
+    }
+  };
+  await set_dir_content(contents, "");
   pyjs.exec(`MAIN`);
   pyjs.exec_eval(`main_task = create_task(main('${baseUrl}')); main_task`);
   const serverReady = pyjs.exec_eval(`task = create_task(wait_server_ready()); task`);

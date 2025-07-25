@@ -1,3 +1,5 @@
+import base64
+import json
 import shutil
 import subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -9,9 +11,8 @@ from cyclopts import App
 app = App()
 
 @app.default
-def _main(*, serve: bool = False):
+def _main(*, environment: str = "environment", serve: bool = False):
     version = "0.1.2"
-
     here = Path(__file__).absolute().parent
     index_html = (here / "index.html").read_text()
     service_worker_js = (here / "service-worker.js").read_text()
@@ -25,10 +26,28 @@ def _main(*, serve: bool = False):
     shutil.rmtree(env_dir, ignore_errors=True)
     build_dir.mkdir()
 
+    def get_dir_content(path: Path, contents: dict, dir: Path):
+        for p in path.iterdir():
+            if p.is_dir():
+                (dir / p.name).mkdir()
+                contents[p.name] = _content = {}
+                get_dir_content(p, _content, dir / p.name)
+            else:
+                content_bytes = p.read_bytes()
+                content_text = base64.b64encode(content_bytes).decode()
+                (dir / p.name).write_text(content_text)
+                contents[p.name] = None
+
+    contents = {}
+    contents_dir = build_dir / "contents"
+    contents_dir.mkdir()
+    get_dir_content(Path(environment) / "contents", contents, contents_dir)
+    (build_dir / "contents.json").write_text(json.dumps(contents))
+
     def call(command: str):
         subprocess.run(command, check=True, shell=True)
 
-    call(f'micromamba create -f {here / "environment.yml"} --platform emscripten-wasm32 --prefix {env_dir} --relocate-prefix "/" --yes')
+    call(f'micromamba create -f {Path(environment) / "environment.yml"} --platform emscripten-wasm32 --prefix {env_dir} --relocate-prefix "/" --yes')
     for filename in (env_dir / "lib_js" / "pyjs").glob("*"):
         shutil.copy(filename, build_dir)
     call(f"empack pack env --env-prefix {env_dir} --outdir {build_dir} --no-use-cache")

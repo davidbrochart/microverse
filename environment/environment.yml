@@ -1,8 +1,9 @@
-name: my-pyjs-env 
+name: my-env 
 channels:
   - https://repo.prefix.dev/emscripten-forge-dev
   - https://repo.prefix.dev/conda-forge
 dependencies:
+  # mandatory dependencies:
   - pyjs
   - httpx >=0.28.1
   - httpx-ws >=0.7.2
@@ -16,3 +17,8 @@ dependencies:
   - fps-akernel-task >=0.1.3
   - fps-kernel-web-worker >=0.1.2
   - akernel >=0.3.4
+
+  # user dependencies:
+  - numpy
+  - pandas
+  - pydro

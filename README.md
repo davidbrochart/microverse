@@ -2,6 +2,12 @@
 
 In-browser JupyterLab powered by [Jupyverse](https://github.com/jupyter-server/jupyverse).
 
+## Usage
+
+The [environment](https://github.com/davidbrochart/microverse/tree/main/environment) directory consists of:
+- an [environment.yml](https://github.com/davidbrochart/microverse/blob/main/environment/environment.yml) file where you can add packages used at runtime.
+- a [contents](https://github.com/davidbrochart/microverse/tree/main/environment/contents) directory where you can add files and directories used at runtime.
+
 ## Local deployment
 
 - Install [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
