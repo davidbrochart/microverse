@@ -79,7 +79,18 @@ const waitForKernelWebWorkerRequest = async () => {
   return msg;
 }
 
+const reinstall_service_worker_resolve = [null];
+const reinstall_service_worker_promise = [new Promise((_resolve) => {reinstall_service_worker_resolve[0] = _resolve;})];
+
+const waitForReinstallServiceWorker = async () => {
+  await reinstall_service_worker_promise[0];
+}
+
 const responseFromServer = async (request) => {
+  if (pyjs === undefined) {
+    reinstall_service_worker_resolve[0]();
+    return new Response("Please wait while reinstalling service worker...", {status: 200});
+  }
   const url = request.url.slice(baseUrl.length - 1);
   const headers = {};
   for (const pair of request.headers.entries()) {
@@ -201,6 +212,17 @@ addEventListener("message", (event) => {
           client.postMessage({
             type: "kernel-web-worker",
             msg,
+          });
+        })(),
+      );
+      break;
+    case "wait reinstall-service-worker":
+      event.waitUntil(
+        (async () => {
+          await waitForReinstallServiceWorker();
+          const client = event.source;
+          client.postMessage({
+            type: "reinstall-service-worker",
           });
         })(),
       );

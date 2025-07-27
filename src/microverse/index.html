@@ -39,6 +39,14 @@
               {type: "wait kernel-web-worker"},
             );
             break;
+          case "reinstall-service-worker":
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (const registration of registrations) {
+                registration.unregister();
+              }
+              window.location.reload();
+            });
+            break;
         }
       });
       try {
@@ -65,6 +73,9 @@
           );
           registration.active.postMessage(
             {type: "wait kernel-web-worker"},
+          );
+          registration.active.postMessage(
+            {type: "wait reinstall-service-worker"},
           );
         }
       } catch (error) {
