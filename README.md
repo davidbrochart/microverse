@@ -2,6 +2,8 @@
 
 In-browser JupyterLab powered by [Jupyverse](https://github.com/jupyter-server/jupyverse).
 
+:warning: microverse doesn't work in Firefox due to [request body](https://developer.mozilla.org/en-US/docs/Web/API/Request/body) not being supported (see [this issue](https://bugzilla.mozilla.org/show_bug.cgi?id=1387483)).
+
 ## Usage
 
 The [environment](https://github.com/davidbrochart/microverse/tree/main/environment) directory consists of:
