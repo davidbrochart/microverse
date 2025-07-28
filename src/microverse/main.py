@@ -90,6 +90,8 @@ class Client:
             response = await self._client.put(url, headers=headers, data=body)
         elif method == "PATCH":
             response = await self._client.patch(url, headers=headers, data=body)
+        elif method == "DELETE":
+            response = await self._client.delete(url, headers=headers)
         body = None
         try:
             body = response.json()

@@ -208,6 +208,9 @@ addEventListener("message", (event) => {
             kernel_callbacks[msg.kernel_id] = msg.callback;
             delete msg.callback;
           }
+          if (msg.action === 'stop') {
+            delete kernel_callbacks[msg.kernel_id];
+          }
           const client = event.source;
           client.postMessage({
             type: "kernel-web-worker",

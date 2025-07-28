@@ -24,15 +24,21 @@
             }
             break;
           case "kernel-web-worker":
-            if (response.msg.action === "start") {
-              var worker = new Worker('kernel-web-worker.js');
-              kernels[response.msg.kernel_id] = worker;
-              worker.postMessage({type: "start", kernel_id: response.msg.kernel_id});
-              worker.addEventListener("message", (msg) => {
-                service_worker.postMessage(msg.data);
-              });
-            } else {
-              kernels[response.msg.kernel_id].postMessage({type: response.msg.action, msg: response.msg.msg});
+            switch (response.msg.action) {
+              case "start":
+                var worker = new Worker('kernel-web-worker.js');
+                kernels[response.msg.kernel_id] = worker;
+                worker.postMessage({type: "start", kernel_id: response.msg.kernel_id});
+                worker.addEventListener("message", (msg) => {
+                  service_worker.postMessage(msg.data);
+                });
+                break;
+              case "stop":
+                kernels[response.msg.kernel_id].terminate();
+                delete kernels[response.msg.kernel_id];
+                break;
+              default:
+                kernels[response.msg.kernel_id].postMessage({type: response.msg.action, msg: response.msg.msg});
             }
             // wait for a kernel request again
             service_worker.postMessage(
