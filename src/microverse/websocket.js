@@ -65,6 +65,7 @@ class WebSocket {
     }
   }
   close() {
+    fetch(baseUrl + 'microverse/websocket/close/' + this.id);
     this._close = true;
   }
 };

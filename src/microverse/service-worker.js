@@ -118,7 +118,7 @@ const responseFromServer = async (request) => {
   }
 
   if (url.includes("api/kernels") && url.includes("channels")) {
-    const task = pyjs.exec_eval(`task = create_task(client.create_websocket('${url}')); task`);
+    const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}')); task`);
     const ws_id = await task
     if (ws_id === "error") {
       const response = new Response(ws_id, {status: 404});
@@ -145,6 +145,18 @@ f
   if (url.includes("/microverse/websocket/receive/")) {
     const id = url.slice(-32);
     const task = pyjs.exec_eval(`task = create_task(client.receive_websocket('${id}')); task`);
+    const res = await task;
+    if (res) {
+      const response = new Response(res, {status: 200});
+      return response;
+    } else {
+      const response = new Response(res, {status: 404});
+      return response;
+    }
+  }
+  if (url.includes("/microverse/websocket/close/")) {
+    const id = url.slice(-32);
+    const task = pyjs.exec_eval(`task = create_task(client.close_websocket('${id}')); task`);
     const res = await task;
     if (res) {
       const response = new Response(res, {status: 200});

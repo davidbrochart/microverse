@@ -12,7 +12,7 @@ app = App()
 
 @app.default
 def _main(*, environment: str = "environment", serve: bool = False):
-    version = "0.1.3"
+    version = "0.1.4"
     here = Path(__file__).absolute().parent
     index_html = (here / "index.html").read_text()
     service_worker_js = (here / "service-worker.js").read_text()

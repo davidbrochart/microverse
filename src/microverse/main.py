@@ -39,12 +39,13 @@ class Client:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return await self._exit_stack(exc_type, exc_val, exc_tb)
 
-    async def create_websocket(self, url):
+    async def open_websocket(self, url):
         idx = uuid4().hex
         status = Queue()
         self._websockets[idx] = {
-            "task": create_task(self._create_websocket(url, idx)),
+            "task": create_task(self._open_websocket(url, idx)),
             "status": status,
+            "close": Event(),
         };
         val = await status.get()
         if val == "error":
@@ -52,17 +53,24 @@ class Client:
             return "error"
         return idx
 
-    async def _create_websocket(self, url, idx):
+    async def _open_websocket(self, url, idx):
         try:
             async with aconnect_ws(url, self._client, keepalive_ping_interval_seconds=None) as ws:
                 self._websockets[idx]["ws"] = ws
                 self._websockets[idx]["status"].put_nowait("ok")
-                await Event().wait()
+                await self._websockets[idx]["close"].wait()
+                del self._websockets[idx]
         except BaseException as e:
             self._websockets[idx]["status"].put_nowait("error")
-            print(f"{e=} {parsed_url.path=}")
+            print(f"{e=}")
             import traceback
             print(traceback.format_exc())
+
+    async def close_websocket(self, idx):
+        try:
+            self._websockets[idx]["close"].set()
+        except BaseException as e:
+            print(f"{e=}")
 
     async def send_websocket(self, idx, data):
         try:
@@ -76,7 +84,7 @@ class Client:
             msg = await self._websockets[idx]["ws"].receive_json()
             return json.dumps(msg)
         except BaseException as e:
-            print(f"receive_websocket {e=}")
+            pass
 
     async def send_request(self, method, url, body, headers):
         if body is not None:
