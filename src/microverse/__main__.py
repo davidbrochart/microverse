@@ -18,7 +18,6 @@ def _main(*, environment: str = "environment", serve: bool = False):
     service_worker_js = (here / "service-worker.js").read_text()
     main = (here / "main.py").read_text()
     websocket = (here / "websocket.js").read_text()
-    asgiwebsockettransport = (here / "asgi_websocket_transport.py").read_text()
 
     build_dir = Path("build").absolute()
     env_dir = Path("env").absolute()
@@ -56,11 +55,6 @@ def _main(*, environment: str = "environment", serve: bool = False):
         index_html.replace("VERSION", version)
     )
     (build_dir / "index.html").write_text(index)
-
-    main = (
-        main
-        .replace("ASGIWEBSOCKETTRANSPORT", asgiwebsockettransport)
-    )
 
     service_worker = (
         service_worker_js

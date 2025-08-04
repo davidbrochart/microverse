@@ -9,9 +9,9 @@ import httpx
 from anyio import create_task_group
 from fps import Module, get_root_module, initialize
 from jupyverse_api.app import App
+from jupyverse_api.asgi_websocket_transport import ASGIWebSocketTransport
 from httpx_ws import aconnect_ws
 
-ASGIWEBSOCKETTRANSPORT
 
 async def run_sync(callable, *args):
     return callable(*args)
@@ -129,7 +129,7 @@ async def main(base_url):
                         }
                     },
                     "auth": {
-                        "type": "auth",
+                        "type": "noauth",
                     },
                     "contents": {
                         "type": "contents",
