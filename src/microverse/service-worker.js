@@ -4,25 +4,22 @@ var pyjs;
 var baseUrl = '';
 
 const startServer = async () => {
-  let locateFile = function(filename){
+  let locateFile = function(filename) {
       if(filename.endsWith('pyjs_runtime_browser.wasm')){
-          return './pyjs_runtime_browser.wasm'; // location of the wasm 
-                                              // file on the server relative 
-                                              // to the pyjs_runtime_browser.js file
+          return './pyjs_runtime_browser.wasm'; // location of the wasm
+                                                // file on the server relative
+                                                // to the pyjs_runtime_browser.js file
       }
   };
   pyjs = await createModule({locateFile});
   await pyjs.bootstrap_from_empack_packed_environment(
-      './empack_env_meta.json', // location of the environment 
+      './empack_env_meta.json', // location of the environment
                                 // meta file on the server
-      '.'                       // location of the packed 
+      '.'                       // location of the packed
                                 // environment on the server
   );
-  var response = await fetch("share.json");
+  var response = await fetch("contents.json");
   var data = await response.text();
-  var share = JSON.parse(data);
-  response = await fetch("contents.json");
-  data = await response.text();
   var contents = JSON.parse(data);
   pyjs.exec(`
 import base64
@@ -30,7 +27,6 @@ import os
 from pathlib import Path
 
 p = Path()
-(p / "share").mkdir(exist_ok=True)
 (p / "contents").mkdir()
 `);
   const set_dir_content = async (contents, root_dir, cur_dir) => {
@@ -55,9 +51,7 @@ p = Path()
       }
     }
   };
-  pyjs.exec(`os.chdir("share")`);
-  await set_dir_content(share, "share", "");
-  pyjs.exec(`os.chdir("../contents")`);
+  pyjs.exec(`os.chdir("contents")`);
   await set_dir_content(contents, "contents", "");
   pyjs.exec(`MAIN`);
   pyjs.exec_eval(`main_task = create_task(main('${baseUrl}')); main_task`);
