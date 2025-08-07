@@ -18,8 +18,11 @@ const startServer = async () => {
       '.'                       // location of the packed 
                                 // environment on the server
   );
-  var response = await fetch("contents.json");
+  var response = await fetch("share.json");
   var data = await response.text();
+  var share = JSON.parse(data);
+  response = await fetch("contents.json");
+  data = await response.text();
   var contents = JSON.parse(data);
   pyjs.exec(`
 import base64
@@ -27,24 +30,24 @@ import os
 from pathlib import Path
 
 p = Path()
+(p / "share").mkdir(exist_ok=True)
 (p / "contents").mkdir()
-os.chdir("contents")
 `);
-  const set_dir_content = async (contents, cur_dir) => {
+  const set_dir_content = async (contents, root_dir, cur_dir) => {
     for (const k in contents) {
       if (contents[k]) {
-        pyjs.exec(`(p / "${cur_dir}" / "${k}").mkdir()`);
+        pyjs.exec(`(p / "${cur_dir}" / "${k}").mkdir(exist_ok=True)`);
         if (cur_dir !== "") {
-          await set_dir_content(contents[k], `${cur_dir}/${k}`);
+          await set_dir_content(contents[k], root_dir, `${cur_dir}/${k}`);
         } else {
-          await set_dir_content(contents[k], k);
+          await set_dir_content(contents[k], root_dir, k);
         }
       } else {
         var content_path;
         if (cur_dir !== "") {
-          content_path = `contents/${cur_dir}/${k}`;
+          content_path = `${root_dir}/${cur_dir}/${k}`;
         } else {
-          content_path = `contents/${k}`;
+          content_path = `${root_dir}/${k}`;
         }
         response = await fetch(content_path);
         data = await response.text();
@@ -52,7 +55,10 @@ os.chdir("contents")
       }
     }
   };
-  await set_dir_content(contents, "");
+  pyjs.exec(`os.chdir("share")`);
+  await set_dir_content(share, "share", "");
+  pyjs.exec(`os.chdir("../contents")`);
+  await set_dir_content(contents, "contents", "");
   pyjs.exec(`MAIN`);
   pyjs.exec_eval(`main_task = create_task(main('${baseUrl}')); main_task`);
   const serverReady = pyjs.exec_eval(`task = create_task(wait_server_ready()); task`);
@@ -117,8 +123,10 @@ const responseFromServer = async (request) => {
     request_body = mergedArray;
   }
 
-  if (url.includes("api/kernels") && url.includes("channels")) {
-    const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}')); task`);
+  const isCollaboration = url.includes("api/collaboration/room");
+  if ((url.includes("api/kernels") && url.includes("channels")) || isCollaboration) {
+    const binary = isCollaboration ? "True" : "False";
+    const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}', ${binary})); task`);
     const ws_id = await task
     if (ws_id === "error") {
       const response = new Response(ws_id, {status: 404});

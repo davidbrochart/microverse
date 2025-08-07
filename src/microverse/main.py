@@ -1,3 +1,4 @@
+import base64
 import json
 
 import pyjs
@@ -6,14 +7,13 @@ from contextlib import AsyncExitStack
 from uuid import uuid4
 
 import httpx
-from anyio import create_task_group
 from fps import Module, get_root_module, initialize
 from jupyverse_api.app import App
 from jupyverse_api.asgi_websocket_transport import ASGIWebSocketTransport
 from httpx_ws import aconnect_ws
 
 
-async def run_sync(callable, *args):
+async def run_sync(callable, *args, **kwargs):
     return callable(*args)
 
 import anyio.to_thread
@@ -37,15 +37,16 @@ class Client:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return await self._exit_stack(exc_type, exc_val, exc_tb)
+        return await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def open_websocket(self, url):
+    async def open_websocket(self, url, binary):
         idx = uuid4().hex
         status = Queue()
         self._websockets[idx] = {
             "task": create_task(self._open_websocket(url, idx)),
             "status": status,
             "close": Event(),
+            "binary": binary,
         };
         val = await status.get()
         if val == "error":
@@ -75,16 +76,24 @@ class Client:
     async def send_websocket(self, idx, data):
         try:
             data = bytes(pyjs.to_py(data))
-            await self._websockets[idx]["ws"].send_json(json.loads(data))
+            if self._websockets[idx]["binary"]:
+                await self._websockets[idx]["ws"].send_bytes(data)
+            else:
+                await self._websockets[idx]["ws"].send_json(json.loads(data))
         except BaseException as e:
             print(f"send_websocket {e=}")
 
     async def receive_websocket(self, idx):
         try:
-            msg = await self._websockets[idx]["ws"].receive_json()
-            return json.dumps(msg)
+            if self._websockets[idx]["binary"]:
+                msg = await self._websockets[idx]["ws"].receive_bytes()
+                msg = bytes(msg)
+                return base64.b64encode(msg).decode()
+            else:
+                msg = await self._websockets[idx]["ws"].receive_json()
+                return json.dumps(msg)
         except BaseException as e:
-            pass
+            print(f"receive_websocket {e=}")
 
     async def send_request(self, method, url, body, headers):
         if body is not None:
@@ -152,6 +161,15 @@ async def main(base_url):
                     "jupyterlab": {
                         "type": "jupyterlab",
                     },
+                    "file_watcher_poll": {
+                        "type": "file_watcher_poll",
+                    },
+                    "file_id": {
+                        "type": "file_id",
+                    },
+                    "yjs": {
+                        "type": "yjs",
+                    },
                 },
             },
         }
@@ -165,3 +183,5 @@ async def main(base_url):
             await Event().wait()
     except BaseException as exception:
         print(f"{exception=}")
+        import traceback
+        print(traceback.format_exc())

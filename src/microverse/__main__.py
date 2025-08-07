@@ -50,6 +50,14 @@ def _main(*, environment: str = "environment", serve: bool = False):
     for filename in (env_dir / "lib_js" / "pyjs").glob("*"):
         shutil.copy(filename, build_dir)
     call(f"empack pack env --env-prefix {env_dir} --outdir {build_dir} --no-use-cache")
+    #call(f"empack pack dir --host-dir {env_dir / 'share'} --mount-dir /share --outname share.tar.gz --outdir {build_dir}")
+
+    share = {}
+    share_dir = build_dir / "share"
+    share_dir.mkdir()
+    get_dir_content(env_dir / "share", share, share_dir)
+    (build_dir / "share.json").write_text(json.dumps(share))
+
 
     index = (
         index_html.replace("VERSION", version)

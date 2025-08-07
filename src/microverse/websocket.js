@@ -60,7 +60,16 @@ class WebSocket {
         this._closed = true;
       } else {
         const data = await response.text();
-        this._onmessage({data});
+        try {
+          var binaryString = atob(data);
+          var bytes = new Uint8Array(binaryString.length);
+          for (var i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          this._onmessage({data: bytes.buffer});
+        } catch (error) {
+          this._onmessage({data});
+        }
       }
     }
   }
