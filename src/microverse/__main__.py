@@ -30,24 +30,6 @@ def _main(*, environment: str = "environment", serve: bool = False):
     
     (Path(sys.prefix) / "share" / "empack" / "empack_config.yaml").write_text(empack_config)
 
-    def get_dir_content(path: Path, contents: dict, dir: Path):
-        for p in path.iterdir():
-            if p.is_dir():
-                (dir / p.name).mkdir()
-                contents[p.name] = _content = {}
-                get_dir_content(p, _content, dir / p.name)
-            else:
-                content_bytes = p.read_bytes()
-                content_text = base64.b64encode(content_bytes).decode()
-                (dir / p.name).write_text(content_text)
-                contents[p.name] = None
-
-    contents = {}
-    contents_dir = build_dir / "contents"
-    contents_dir.mkdir()
-    get_dir_content(environment / "contents", contents, contents_dir)
-    (build_dir / "contents.json").write_text(json.dumps(contents))
-
     def call(command: str):
         subprocess.run(command, check=True, shell=True)
 
@@ -55,7 +37,8 @@ def _main(*, environment: str = "environment", serve: bool = False):
     for filename in (env_dir / "lib_js" / "pyjs").glob("*"):
         shutil.copy(filename, build_dir)
     call(f"empack pack env --env-prefix {env_dir} --outdir {build_dir} --no-use-cache")
-    #call(f"empack pack dir --host-dir {environment / 'contents'} --mount-dir /contents --outname contents.tar.gz --outdir {build_dir}")
+    call(f"empack pack dir --host-dir {environment / 'contents'} --mount-dir /contents --outname contents.tar.gz --outdir {build_dir}")
+    call(f"empack pack append --env-meta {build_dir} --tarfile {build_dir / 'contents.tar.gz'}")
 
     index = (
         index_html.replace("VERSION", version)
