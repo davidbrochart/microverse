@@ -7,6 +7,8 @@ class WebSocket {
     } else {
       http_url = 'http' + url.slice(2);
     }
+    const i = baseUrl.length + 'microverse/'.length;
+    http_url = baseUrl + 'microverse/microverse_websocket/open/' + http_url.slice(i);
     fetch(http_url).then((response) => {
       if (!response.ok) {
         this._closed = true;
@@ -48,33 +50,41 @@ class WebSocket {
     return '';
   }
   send(data) {
-    fetch(baseUrl + 'microverse/websocket/send/' + this.id, {
+    fetch(baseUrl + 'microverse/microverse_websocket/send/' + this.id, {
       method: 'POST',
       body: data
     });
   }
   async receive() {
     while (!this._closed) {
-      const response = await fetch(baseUrl + 'microverse/websocket/receive/' + this.id);
-      if (!response.ok) {
+      var response;
+      try {
+        response = await fetch(baseUrl + 'microverse/microverse_websocket/receive/' + this.id);
+      } catch (error) {
         this._closed = true;
-      } else {
+      }
+      if (response && !response.ok) {
+        this._closed = true;
+      }
+      if (!this._closed) {
         const data = await response.text();
-        try {
-          var binaryString = atob(data);
-          var bytes = new Uint8Array(binaryString.length);
-          for (var i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        if (data !== '') {
+          try {
+            var binaryString = atob(data);
+            var bytes = new Uint8Array(binaryString.length);
+            for (var i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            this._onmessage({data: bytes.buffer});
+          } catch (error) {
+            this._onmessage({data});
           }
-          this._onmessage({data: bytes.buffer});
-        } catch (error) {
-          this._onmessage({data});
         }
       }
     }
   }
   close() {
-    fetch(baseUrl + 'microverse/websocket/close/' + this.id);
-    this._close = true;
+    fetch(baseUrl + 'microverse/microverse_websocket/close/' + this.id);
+    this._closed = true;
   }
 };

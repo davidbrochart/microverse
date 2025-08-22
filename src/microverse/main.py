@@ -50,8 +50,8 @@ class Client:
         };
         val = await status.get()
         if val == "error":
-            print(f"websocket failed {url=}")
-            return "error"
+            del self._websockets[idx]
+            return
         return idx
 
     async def _open_websocket(self, url, idx):
@@ -61,17 +61,15 @@ class Client:
                 self._websockets[idx]["status"].put_nowait("ok")
                 await self._websockets[idx]["close"].wait()
                 del self._websockets[idx]
-        except BaseException as e:
-            self._websockets[idx]["status"].put_nowait("error")
-            print(f"{e=}")
-            import traceback
-            print(traceback.format_exc())
+        except BaseException:
+            if idx in self._websockets:
+                self._websockets[idx]["status"].put_nowait("error")
 
     async def close_websocket(self, idx):
-        try:
+        if idx in self._websockets:
             self._websockets[idx]["close"].set()
-        except BaseException as e:
-            print(f"{e=}")
+            del self._websockets[idx]
+            return "ok"
 
     async def send_websocket(self, idx, data):
         try:
@@ -86,14 +84,16 @@ class Client:
     async def receive_websocket(self, idx):
         try:
             if self._websockets[idx]["binary"]:
-                msg = await self._websockets[idx]["ws"].receive_bytes()
+                msg = await self._websockets[idx]["ws"].receive_bytes(timeout=10)
                 msg = bytes(msg)
                 return base64.b64encode(msg).decode()
             else:
-                msg = await self._websockets[idx]["ws"].receive_json()
+                msg = await self._websockets[idx]["ws"].receive_json(timeout=10)
                 return json.dumps(msg)
+        except TimeoutError:
+            return ""
         except BaseException as e:
-            print(f"receive_websocket {e=}")
+            print(f"receive_websocket {e=} {idx=}")
 
     async def send_request(self, method, url, body, headers):
         if body is not None:
