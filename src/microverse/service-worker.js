@@ -55,9 +55,10 @@ const waitForReinstallServiceWorker = async () => {
 const responseFromServer = async (request) => {
   if (pyjs === undefined) {
     reinstall_service_worker_resolve[0]();
-    return new Response("Please wait while reinstalling service worker...", {status: 200});
+    console.log("Please wait while reinstalling service worker...");
+    return new Response("", {status: 200});
   }
-  const url = request.url.slice(baseUrl.length - 1);
+  var url = request.url.slice(baseUrl.length - 1);  // remove trailing slash
   const headers = {};
   for (const pair of request.headers.entries()) {
     if (!pair[0].startsWith("sec-ch-ua")) {
@@ -84,54 +85,60 @@ const responseFromServer = async (request) => {
   }
 
   const isCollaboration = url.includes("api/collaboration/room");
-  if ((url.includes("api/kernels") && url.includes("channels")) || isCollaboration) {
-    const binary = isCollaboration ? "True" : "False";
-    const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}', ${binary})); task`);
-    const ws_id = await task
-    if (ws_id === "error") {
-      const response = new Response(ws_id, {status: 404});
-      return response;
-    } else {
-      const response = new Response(ws_id, {status: 200});
-      return response;
-    }
-  }
-  if (url.includes("/microverse/websocket/send/")) {
-    const id = url.slice(-32);
-    var f = pyjs.exec_eval(
+  const microverseWebsocket = "microverse_websocket";
+  const i = url.indexOf(microverseWebsocket);
+  if (i === '/microverse/'.length) {  // that's a websocket
+    const url2 = url.slice(i + microverseWebsocket.length);
+    if (url2.startsWith('/send/')) {
+      const id = url.slice(-32);
+      var f = pyjs.exec_eval(
 `
 def f(idx, data):
     return create_task(client.send_websocket(idx, data))
 f
 `);
-    const ret = f.py_call(id, request_body);
-    await ret;
-    const response = new Response('', {status: 200});
-    f.delete();
-    return response;
-  }
-  if (url.includes("/microverse/websocket/receive/")) {
-    const id = url.slice(-32);
-    const task = pyjs.exec_eval(`task = create_task(client.receive_websocket('${id}')); task`);
-    const res = await task;
-    if (res) {
-      const response = new Response(res, {status: 200});
+      const ret = f.py_call(id, request_body);
+      await ret;
+      const response = new Response('', {status: 200});
+      f.delete();
       return response;
-    } else {
-      const response = new Response(res, {status: 404});
-      return response;
-    }
-  }
-  if (url.includes("/microverse/websocket/close/")) {
-    const id = url.slice(-32);
-    const task = pyjs.exec_eval(`task = create_task(client.close_websocket('${id}')); task`);
-    const res = await task;
-    if (res) {
-      const response = new Response(res, {status: 200});
-      return response;
-    } else {
-      const response = new Response(res, {status: 404});
-      return response;
+    } else if (url2.startsWith('/receive/')) {
+      const id = url.slice(-32);
+      const task = pyjs.exec_eval(`task = create_task(client.receive_websocket('${id}')); task`);
+      const res = await task;
+      if (res === undefined) {
+        const response = new Response('', {status: 404});
+        return response;
+      } else if (res === "") {
+        const response = new Response('', {status: 200});
+        return response;
+      } else {
+        const response = new Response(res, {status: 200});
+        return response;
+      }
+    } else if (url2.startsWith('/close/')) {
+      const id = url.slice(-32);
+      const task = pyjs.exec_eval(`task = create_task(client.close_websocket('${id}')); task`);
+      const res = await task;
+      if (res) {
+        const response = new Response(res, {status: 200});
+        return response;
+      } else {
+        const response = new Response('', {status: 404});
+        return response;
+      }
+    } else if (url2.startsWith('/open/')) {
+      url = url.slice(0, i - 1) + url.slice(i + microverseWebsocket.length + '/open'.length)
+      const binary = isCollaboration ? "True" : "False";
+      const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}', ${binary})); task`);
+      const ws_id = await task
+      if (ws_id === undefined) {
+        const response = new Response('', {status: 404});
+        return response;
+      } else {
+        const response = new Response(ws_id, {status: 200});
+        return response;
+      }
     }
   }
   var f = pyjs.exec_eval(
