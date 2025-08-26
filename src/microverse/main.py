@@ -1,4 +1,3 @@
-import base64
 import json
 
 import pyjs
@@ -7,6 +6,7 @@ from contextlib import AsyncExitStack
 from uuid import uuid4
 
 import httpx
+import wsproto
 from fps import Module, get_root_module, initialize
 from jupyverse_api.app import App
 from jupyverse_api.asgi_websocket_transport import ASGIWebSocketTransport
@@ -39,14 +39,13 @@ class Client:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def open_websocket(self, url, binary):
+    async def open_websocket(self, url):
         idx = uuid4().hex
         status = Queue()
         self._websockets[idx] = {
             "task": create_task(self._open_websocket(url, idx)),
             "status": status,
             "close": Event(),
-            "binary": binary,
         };
         val = await status.get()
         if val == "error":
@@ -71,27 +70,27 @@ class Client:
             del self._websockets[idx]
             return "ok"
 
-    async def send_websocket(self, idx, data):
+    async def send_websocket(self, idx, data, binary):
         try:
             data = bytes(pyjs.to_py(data))
-            if self._websockets[idx]["binary"]:
+            if binary:
                 await self._websockets[idx]["ws"].send_bytes(data)
             else:
-                await self._websockets[idx]["ws"].send_json(json.loads(data))
+                data = data.decode()
+                await self._websockets[idx]["ws"].send_text(data)
         except BaseException as e:
             print(f"send_websocket {e=}")
 
     async def receive_websocket(self, idx):
         try:
-            if self._websockets[idx]["binary"]:
-                msg = await self._websockets[idx]["ws"].receive_bytes(timeout=10)
-                msg = bytes(msg)
-                return base64.b64encode(msg).decode()
+            event = await self._websockets[idx]["ws"].receive(10)
+            if isinstance(event, wsproto.events.TextMessage):
+                data = bytes([1]) + event.data.encode()
             else:
-                msg = await self._websockets[idx]["ws"].receive_json(timeout=10)
-                return json.dumps(msg)
+                data = bytes([0]) + bytes(event.data)
+            return pyjs.buffer_to_js_typed_array(data)
         except TimeoutError:
-            return ""
+            return pyjs.buffer_to_js_typed_array(b"")
         except BaseException as e:
             print(f"receive_websocket {e=} {idx=}")
 

@@ -50,7 +50,13 @@ class WebSocket {
     return '';
   }
   send(data) {
-    fetch(baseUrl + 'microverse/microverse_websocket/send/' + this.id, {
+    var url;
+    if (typeof data === "string"  || data instanceof String) {
+      url = baseUrl + 'microverse/microverse_websocket/send_text/' + this.id;
+    } else {
+      url = baseUrl + 'microverse/microverse_websocket/send_bytes/' + this.id;
+    }
+    fetch(url, {
       method: 'POST',
       body: data
     });
@@ -67,16 +73,12 @@ class WebSocket {
         this._closed = true;
       }
       if (!this._closed) {
-        const data = await response.text();
-        if (data !== '') {
-          try {
-            var binaryString = atob(data);
-            var bytes = new Uint8Array(binaryString.length);
-            for (var i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            this._onmessage({data: bytes.buffer});
-          } catch (error) {
+        var data = await response.arrayBuffer();
+        if (data.byteLength > 1) {
+          if (new Uint8Array(data)[0] === 0) {  // binary
+            this._onmessage({data: data.slice(1)});
+          } else {  // text
+            data = new TextDecoder().decode(data.slice(1));
             this._onmessage({data});
           }
         }
