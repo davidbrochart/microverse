@@ -84,20 +84,20 @@ const responseFromServer = async (request) => {
     request_body = mergedArray;
   }
 
-  const isCollaboration = url.includes("api/collaboration/room");
   const microverseWebsocket = "microverse_websocket";
   const i = url.indexOf(microverseWebsocket);
   if (i === '/microverse/'.length) {  // that's a websocket
     const url2 = url.slice(i + microverseWebsocket.length);
-    if (url2.startsWith('/send/')) {
+    if (url2.startsWith('/send_text/') || url2.startsWith('/send_bytes/')) {
+      const binary = url2.startsWith('/send_text/') ? false : true;
       const id = url.slice(-32);
       var f = pyjs.exec_eval(
 `
-def f(idx, data):
-    return create_task(client.send_websocket(idx, data))
+def f(idx, data, binary):
+    return create_task(client.send_websocket(idx, data, binary))
 f
 `);
-      const ret = f.py_call(id, request_body);
+      const ret = f.py_call(id, request_body, binary);
       await ret;
       const response = new Response('', {status: 200});
       f.delete();
@@ -107,10 +107,10 @@ f
       const task = pyjs.exec_eval(`task = create_task(client.receive_websocket('${id}')); task`);
       const res = await task;
       if (res === undefined) {
-        const response = new Response('', {status: 404});
+        const response = new Response(new ArrayBuffer(0), {status: 404});
         return response;
-      } else if (res === "") {
-        const response = new Response('', {status: 200});
+      } else if (res.byteLength === 0) {
+        const response = new Response(new ArrayBuffer(0), {status: 200});
         return response;
       } else {
         const response = new Response(res, {status: 200});
@@ -129,8 +129,7 @@ f
       }
     } else if (url2.startsWith('/open/')) {
       url = url.slice(0, i - 1) + url.slice(i + microverseWebsocket.length + '/open'.length)
-      const binary = isCollaboration ? "True" : "False";
-      const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}', ${binary})); task`);
+      const task = pyjs.exec_eval(`task = create_task(client.open_websocket('${url}')); task`);
       const ws_id = await task
       if (ws_id === undefined) {
         const response = new Response('', {status: 404});
