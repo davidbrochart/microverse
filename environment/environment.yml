@@ -6,8 +6,8 @@ dependencies:
   # server dependencies:
   - pyjs
   - httpx >=0.28.1
-  - httpx-ws >=0.7.2
-  - jupyverse-api >=0.11.0
+  - httpx-ws >=0.8.2
+  - jupyverse-api >=0.12.4
   - fps-frontend >=0.9.0
   - fps-lab >=0.9.0
   - fps-jupyterlab >=0.9.0
