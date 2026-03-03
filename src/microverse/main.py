@@ -169,6 +169,15 @@ async def main(base_url):
                     "yjs": {
                         "type": "yjs",
                     },
+                    "yrooms": {
+                        "type": "yrooms",
+                    },
+                    "ystore_sqlite": {
+                        "type": "ystore_sqlite",
+                    },
+                    "page_config": {
+                        "type": "page_config",
+                    },
                 },
             },
         }
