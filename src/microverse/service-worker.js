@@ -66,22 +66,8 @@ const responseFromServer = async (request) => {
     }
   }
   var request_body = null;
-  if (request.body) {
-    myArrays = [];
-    for await (const chunk of request.body) {
-      myArrays = myArrays.concat([chunk]);
-    }
-    let length = 0;
-    myArrays.forEach(item => {
-      length += item.length;
-    });
-    let mergedArray = new Uint8Array(length);
-    let offset = 0;
-    myArrays.forEach(item => {
-      mergedArray.set(item, offset);
-      offset += item.length;
-    });
-    request_body = mergedArray;
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    request_body = new Uint8Array(await request.arrayBuffer());
   }
 
   const microverseWebsocket = "microverse_websocket";
