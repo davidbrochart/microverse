@@ -26,12 +26,21 @@ micromamba install pip empack
 ```bash
 pip install -e .
 ```
-- Run `microverse`:
+- Build and serve `microverse`:
 ```bash
-microverse --serve
+microverse build
+microverse serve
 ```
 
 A server should be running at http://127.0.0.1:8000.
+
+To use a different port, run `microverse serve --port 8080`.
+
+`microverse build` creates the environment and builds the site. It accepts `--environment`.
+`microverse serve` serves the existing build and accepts `--port`.
+
+To build with a different environment directory, run
+`microverse build --environment custom`.
 
 ## GitHub pages deployment
 

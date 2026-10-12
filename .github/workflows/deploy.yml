@@ -34,7 +34,7 @@ jobs:
       shell: bash -el {0}
 
     - name: Run microverse
-      run: microverse
+      run: microverse build
       shell: bash -el {0}
 
     - name: Upload artifacts

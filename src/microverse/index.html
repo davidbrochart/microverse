@@ -65,12 +65,20 @@
             {type: "set base url", baseUrl: window.location.href},
           );
           registration.installing.addEventListener('statechange', (event) => {
-            if (event.target.state === "activated") {
+            if (event.target.state === "installed") {
+              event.target.postMessage({type: "activate"});
+            } else if (event.target.state === "activated") {
               window.location.reload();
             }
           });
         } else if (registration.waiting) {
           console.log("Service worker installed");
+          registration.waiting.addEventListener('statechange', (event) => {
+            if (event.target.state === "activated") {
+              window.location.reload();
+            }
+          });
+          registration.waiting.postMessage({type: "activate"});
         } else if (registration.active) {
           console.log("Service worker active");
           service_worker = registration.active;
