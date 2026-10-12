@@ -172,6 +172,9 @@ self.addEventListener("fetch", (event) => {
 addEventListener("message", (event) => {
   const request = event.data;
   switch (request.type) {
+    case "activate":
+      event.waitUntil(self.skipWaiting());
+      break;
     case "set base url":
       baseUrl = request.baseUrl;
       break;

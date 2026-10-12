@@ -1,6 +1,7 @@
 class WebSocket {
   constructor(url) {
     this._closed = false;
+    this._messageEventListeners = [];
     var http_url;
     if (url.startsWith('wss')) {
       http_url = 'https' + url.slice(3);
@@ -49,6 +50,27 @@ class WebSocket {
   get protocol() {
     return '';
   }
+  addEventListener(type, listener) {
+    switch (type) {
+      case 'message':
+        if (!this._messageEventListeners.includes(listener)) {
+          this._messageEventListeners.push(listener);
+        }
+        break;
+      default:
+    }
+  }
+  removeEventListener(type, listener) {
+    switch (type) {
+      case 'message':
+        const index = this._messageEventListeners.indexOf(listener);
+        if (index > -1) {
+          this._messageEventListeners.splice(index, 1);
+        }
+        break;
+      default:
+    }
+  }
   send(data) {
     var url;
     if (typeof data === "string"  || data instanceof String) {
@@ -60,6 +82,20 @@ class WebSocket {
       method: 'POST',
       body: data
     });
+  }
+  _dispatchMessage(data) {
+    const event = {data, type: 'message'};
+    const listeners = this._messageEventListeners.slice();
+    if (this._onmessage) {
+      listeners.unshift(this._onmessage);
+    }
+    for (const listener of listeners) {
+      try {
+        listener.call(this, event);
+      } catch (error) {
+        console.error('WebSocket message listener failed:', error);
+      }
+    }
   }
   async receive() {
     while (!this._closed) {
@@ -76,10 +112,10 @@ class WebSocket {
         var data = await response.arrayBuffer();
         if (data.byteLength > 1) {
           if (new Uint8Array(data)[0] === 0) {  // binary
-            this._onmessage({data: data.slice(1)});
+            this._dispatchMessage(data.slice(1));
           } else {  // text
             data = new TextDecoder().decode(data.slice(1));
-            this._onmessage({data});
+            this._dispatchMessage(data);
           }
         }
       }

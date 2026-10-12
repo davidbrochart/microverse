@@ -5,25 +5,26 @@ channels:
 dependencies:
   # server dependencies:
   - pyjs
-  - httpx >=0.28.1
-  - httpx-ws >=0.8.2
-  - jupyverse-api >=0.14.1
-  - fps-frontend >=0.9.7
-  - fps-lab >=0.10.3
-  - fps-jupyterlab >=0.10.8
-  - fps-noauth >=0.9.8
-  - fps-contents >=0.10.7
-  - fps-kernels >=0.10.11
-  - fps-akernel-task >=0.1.5
-  - fps-kernel-web-worker >=0.1.10
-  - fps-file-id >=0.3.8
-  - fps-file-watcher-poll >=0.1.7
-  - fps-yjs >=0.13.0
-  - fps-yrooms >=0.1.2
-  - fps-ystore-sqlite >=0.1.1
+  - httpx2 >=2.9.1
+  - httpx2-jsfetch
+  - wsproto
+  - jupyverse-api >=0.15.2
+  - fps-frontend >=0.10.1
+  - fps-lab >=0.11.5
+  - fps-jupyterlab >=0.11.3
+  - fps-noauth >=0.10.1
+  - fps-contents >=0.11.3
+  - fps-kernels >=0.11.4
+  - fps-akernel-task >=0.1.8
+  - fps-kernel-web-worker >=0.2.1
+  - fps-file-id >=0.4.3
+  - fps-file-watcher-poll >=0.2.1
+  - fps-yjs >=0.14.2
+  - fps-yrooms >=0.2.3
+  - fps-ystore-sqlite >=0.2.2
   - akernel >=0.3.4
-  - jupyter-collaboration-ui >=2.1.0
-  - jupyter-docprovider >=2.1.0
+  - jupyter-collaboration-ui >=2.4.1
+  - jupyter-docprovider >=2.4.1
 
   # kernel dependencies:
   - numpy

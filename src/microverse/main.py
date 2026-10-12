@@ -1,16 +1,19 @@
 import json
+import logging
 
 import pyjs
 from asyncio import Event, Queue, create_task
 from contextlib import AsyncExitStack
 from uuid import uuid4
 
-import httpx
+import httpx2
 import wsproto
 from fps import Module, get_root_module, initialize
 from jupyverse_api.app import App
-from httpx_ws import aconnect_ws
-from httpx_ws.transport import ASGIWebSocketTransport
+from httpx2.websockets import ASGIWebSocketTransport, WebSocketDisconnect
+
+logger = logging.getLogger("microverse")
+logging.getLogger("httpx2").setLevel(logging.WARNING)
 
 
 async def run_sync(callable, *args, **kwargs):
@@ -18,6 +21,13 @@ async def run_sync(callable, *args, **kwargs):
 
 import anyio.to_thread
 anyio.to_thread.run_sync = run_sync
+
+async def sleep_forever():
+    # PyJS schedules sleeps with JavaScript setTimeout, where an infinite
+    # delay fires immediately. Keep background services alive without a timer.
+    await Event().wait()
+
+anyio.sleep_forever = sleep_forever
 
 server_ready = Event()
 
@@ -30,11 +40,18 @@ class Client:
         self._websockets = {}
 
     async def __aenter__(self):
-        transport = ASGIWebSocketTransport(app=self._root_module.app)
+        transport = ASGIWebSocketTransport(app=self._call_app)
         async with AsyncExitStack() as stack:
-            self._client = await stack.enter_async_context(httpx.AsyncClient(transport=transport, base_url="http://testserver"))
+            self._client = await stack.enter_async_context(httpx2.AsyncClient(transport=transport, base_url="http://testserver"))
             self._exit_stack = stack.pop_all()
         return self
+
+    async def _call_app(self, scope, receive, send):
+        try:
+            await self._root_module.app(scope, receive, send)
+        except Exception:
+            logger.exception("ASGI application failed: %s %s", scope["type"], scope["path"])
+            raise
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         return await self._exit_stack.__aexit__(exc_type, exc_val, exc_tb)
@@ -49,41 +66,57 @@ class Client:
         };
         val = await status.get()
         if val == "error":
-            del self._websockets[idx]
             return
         return idx
 
     async def _open_websocket(self, url, idx):
+        socket = self._websockets[idx]
         try:
-            async with aconnect_ws(url, self._client, keepalive_ping_interval_seconds=None) as ws:
-                self._websockets[idx]["ws"] = ws
-                self._websockets[idx]["status"].put_nowait("ok")
-                await self._websockets[idx]["close"].wait()
-                del self._websockets[idx]
-        except BaseException:
-            if idx in self._websockets:
-                self._websockets[idx]["status"].put_nowait("error")
+            async with self._client.websocket(url, keepalive_ping_interval_seconds=None) as ws:
+                socket["ws"] = ws
+                socket["status"].put_nowait("ok")
+                await socket["close"].wait()
+        except BaseException as exception:
+            if (
+                url.split("?", 1)[0] == "/microverse/api/events/subscribe"
+                and isinstance(exception, WebSocketDisconnect)
+                and exception.code == 1000
+            ):
+                logger.debug("Events subscription is unavailable")
+            else:
+                logger.exception("WebSocket connection failed: %s", url)
+            socket["status"].put_nowait("error")
+        finally:
+            socket["close"].set()
+            self._websockets.pop(idx, None)
 
     async def close_websocket(self, idx):
-        if idx in self._websockets:
-            self._websockets[idx]["close"].set()
-            del self._websockets[idx]
-            return "ok"
+        socket = self._websockets.get(idx)
+        if socket is not None:
+            socket["close"].set()
+        return "ok"
 
     async def send_websocket(self, idx, data, binary):
+        socket = self._websockets.get(idx)
+        if socket is None or socket["close"].is_set():
+            return
         try:
             data = bytes(pyjs.to_py(data))
             if binary:
-                await self._websockets[idx]["ws"].send_bytes(data)
+                await socket["ws"].send_bytes(data)
             else:
                 data = data.decode()
-                await self._websockets[idx]["ws"].send_text(data)
-        except BaseException as e:
-            print(f"send_websocket {e=}")
+                await socket["ws"].send_text(data)
+        except Exception as e:
+            if not socket["close"].is_set():
+                logger.exception("WebSocket send failed: %s", idx)
 
     async def receive_websocket(self, idx):
+        socket = self._websockets.get(idx)
+        if socket is None or socket["close"].is_set():
+            return
         try:
-            event = await self._websockets[idx]["ws"].receive(10)
+            event = await socket["ws"].receive(10)
             if isinstance(event, wsproto.events.TextMessage):
                 data = bytes([1]) + event.data.encode()
             else:
@@ -91,8 +124,10 @@ class Client:
             return pyjs.buffer_to_js_typed_array(data)
         except TimeoutError:
             return pyjs.buffer_to_js_typed_array(b"")
-        except BaseException as e:
-            print(f"receive_websocket {e=} {idx=}")
+        except Exception as e:
+            if socket["close"].is_set():
+                return
+            logger.exception("WebSocket receive failed: %s", idx)
 
     async def send_request(self, method, url, body, headers):
         if body is not None:
@@ -115,7 +150,7 @@ class Client:
             try:
                 body = response.text
             except Exception as exception:
-                print(f"{exception=}")
+                logger.exception("Could not decode response: %s", url)
         return json.dumps({"status": response.status_code, "body": body, "headers": dict(response.headers)})
 
 
@@ -146,6 +181,7 @@ async def main(base_url):
                         "type": "frontend",
                         "config": {
                             "base_url": f"{base_url}microverse/",
+                            "collaborative": True,
                         }
                     },
                     "kernel_web_worker": {
@@ -182,6 +218,7 @@ async def main(base_url):
             },
         }
         root_module = get_root_module(config)
+        root_module._global_start_timeout = 10
         initialize(root_module)
         async with (
             root_module,
@@ -190,6 +227,4 @@ async def main(base_url):
             server_ready.set()
             await Event().wait()
     except BaseException as exception:
-        print(f"{exception=}")
-        import traceback
-        print(traceback.format_exc())
+        logger.exception("Microverse server failed")
