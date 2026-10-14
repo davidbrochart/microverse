@@ -15,14 +15,13 @@ dependencies:
   - fps-noauth >=0.10.1
   - fps-contents >=0.11.3
   - fps-kernels >=0.11.4
-  - fps-akernel-task >=0.1.8
+  - fps-akernel-task >=0.2.2
   - fps-kernel-web-worker >=0.2.1
   - fps-file-id >=0.4.3
   - fps-file-watcher-poll >=0.2.1
   - fps-yjs >=0.14.2
   - fps-yrooms >=0.2.3
   - fps-ystore-sqlite >=0.2.2
-  - akernel >=0.3.4
   - jupyter-collaboration-ui >=2.4.1
   - jupyter-docprovider >=2.4.1
 
