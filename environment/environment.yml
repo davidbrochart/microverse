@@ -1,6 +1,6 @@
 name: my-env
 channels:
-  - https://repo.prefix.dev/emscripten-forge-4x
+  - https://repo.prefix.dev/emscripten-forge/4x
   - https://repo.prefix.dev/conda-forge
 dependencies:
   # server dependencies:
@@ -8,7 +8,7 @@ dependencies:
   - httpx2 >=2.9.1
   - httpx2-jsfetch
   - wsproto
-  - jupyverse-api >=0.15.2
+  - jupyverse-api >=0.15.2,<0.16
   - fps-frontend >=0.10.1
   - fps-lab >=0.11.5
   - fps-jupyterlab >=0.11.3
@@ -24,6 +24,19 @@ dependencies:
   - fps-ystore-sqlite >=0.2.2
   - jupyter-collaboration-ui >=2.4.1
   - jupyter-docprovider >=2.4.1
+  # to be removed when jupyter-shell is on conda-forge:
+  - anyio >=4.11,<5
+  - jupyverse-auth >=0.2,<0.3
+  - jupyverse-terminals >=0.2,<0.3
+  - libghostty-py >=0.3.1,<0.4
+  - libghostty-vt =1.0.1
+  - cyclopts >=5.4,<6
+  - markdown-it-py
+  - linkify-it-py
+  - mdit-py-plugins
+  - platformdirs
+  - sniffio
+  #
 
   # kernel dependencies:
   - numpy

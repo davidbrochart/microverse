@@ -196,6 +196,13 @@ async def main(base_url):
                     "jupyterlab": {
                         "type": "jupyterlab",
                     },
+                    "shell": {
+                        "type": "shell",
+                        "config": {
+                            "mode": "inprocess",
+                            "root_dir": "/contents",
+                        },
+                    },
                     "file_watcher_poll": {
                         "type": "file_watcher_poll",
                     },

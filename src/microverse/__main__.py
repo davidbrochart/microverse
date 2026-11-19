@@ -5,6 +5,7 @@ import subprocess
 import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from cyclopts import App
 
@@ -18,7 +19,7 @@ def build(
 ):
     """Build the Microverse site."""
     environment = Path(environment)
-    version = "0.1.4"
+    version = "0.1.5"
     here = Path(__file__).absolute().parent
     index_html = (here / "index.html").read_text()
     service_worker_js = (here / "service-worker.js").read_text()
@@ -30,7 +31,7 @@ def build(
     env_dir = Path("env").absolute()
     shutil.rmtree(build_dir, ignore_errors=True)
     build_dir.mkdir()
-    
+
     shutil.rmtree(env_dir, ignore_errors=True)
     call(f'micromamba create -f {environment / "environment.yml"} --platform emscripten-wasm32 --prefix {env_dir} --relocate-prefix "/" --yes')
 
@@ -39,6 +40,30 @@ def build(
 
     (Path(sys.prefix) / "share" / "empack" / "empack_config.yaml").write_text(empack_config)
     call(f"empack pack env --env-prefix {env_dir} --outdir {build_dir} --no-use-cache")
+    # to be removed when jupyter-shell is on conda-forge:
+    site_packages = next((env_dir / "lib").glob("python*/site-packages"))
+    with TemporaryDirectory() as wheel_dir:
+        # empack only tracks Conda packages. Mount these pure-Python wheels
+        # separately, including their entry-point metadata.
+        subprocess.run(
+            [
+                sys.executable, "-m", "pip", "install",
+                "--only-binary=:all:", "--no-deps", "--no-compile",
+                "--target", wheel_dir,
+                "jupyter-shell==0.1.0", "anyshell==0.5.0", "anytext==9.3.0",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "empack", "pack", "dir", "--host-dir", wheel_dir,
+                "--mount-dir", "/" + site_packages.relative_to(env_dir).as_posix(),
+                "--outname", "jupyter-shell.tar.gz", "--outdir", str(build_dir),
+            ],
+            check=True,
+        )
+    call(f"empack pack append --env-meta {build_dir} --tarfile {build_dir / 'jupyter-shell.tar.gz'}")
+    #
     call(f"empack pack dir --host-dir {environment / 'contents'} --mount-dir /contents --outname contents.tar.gz --outdir {build_dir}")
     call(f"empack pack append --env-meta {build_dir} --tarfile {build_dir / 'contents.tar.gz'}")
 
